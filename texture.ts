@@ -1,44 +1,60 @@
-var fs = require('fs')
-// import fs from 'fs'
+let shaderFolder =  "../shaders/"
 
 class TEX {
 
     name: string
 
     canvas: HTMLCanvasElement
-    gl: WebGL2RenderingContext
+    gl: WebGLRenderingContext
     
-    vertexShader: WebGLShader
-    fragmentShader: WebGLShader
-    shaderProgram: WebGLProgram
-
     constructor(name: string, canvas: HTMLCanvasElement) {
 
         this.name = name
 
         this.canvas = canvas
-        this.gl = this.canvas.getContext("webgl2")!
+        this.gl = this.canvas.getContext("webgl")!
 
+        this.loadShader(name, (source: string) : void => {
+            this.setup(source)
+        })
+
+    }
+
+    setup(fragmentShaderSource: string) {
+        
         let vertexShaderSource: string = "attribute vec4 position; void main() { gl_Position = position; }"
-        let fragmentShaderSource: string = this.readShader(name)
-        this.vertexShader = this.createShader(this.gl, vertexShaderSource, this.gl.VERTEX_SHADER)
-        this.fragmentShader = this.createShader(this.gl, fragmentShaderSource, this.gl.FRAGMENT_SHADER)
+        let vertexShader: WebGLShader = this.createShader(this.gl, vertexShaderSource, this.gl.VERTEX_SHADER)
+        let fragmentShader: WebGLShader = this.createShader(this.gl, fragmentShaderSource, this.gl.FRAGMENT_SHADER)
 
-        this.shaderProgram = this.createProgram(this.gl, this.vertexShader, this.fragmentShader)
+        let shaderProgram: WebGLProgram = this.createProgram(this.gl, vertexShader, fragmentShader)
 
         let quadBuffer: WebGLBuffer = this.createQuadBuffer(this.gl)
 
         this.clear(this.gl)
-        this.draw(this.gl, this.shaderProgram, quadBuffer)
+        this.draw(this.gl, shaderProgram, quadBuffer)
 
     }
 
-    readShader(name: string): string {
-        let path: string = "shaders/" + name + ".frag"
-        return fs.readFileSync(path, "utf8")
+    // readShader(name: string): string {
+    //     let path: string = "shaders/" + name + ".frag"
+    //     return fs.readFileSync(path, "utf8")
+    // }
+
+    loadShader(name: string, loaded: (_: string) => (void)) {
+        let path: string = shaderFolder + name + ".frag"
+        var rawFile = new XMLHttpRequest();
+        rawFile.open("GET", path, false);
+        rawFile.onreadystatechange = function () {
+            if(rawFile.readyState === 4) {
+                if(rawFile.status === 200 || rawFile.status == 0) {
+                    loaded(rawFile.responseText)
+                }
+            }
+        }
+        rawFile.send(null);
     }
 
-    createProgram(gl: WebGL2RenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader) {
+    createProgram(gl: WebGLRenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader) {
         
         const shaderProgram = gl.createProgram()!;
         gl.attachShader(shaderProgram, vertexShader);
@@ -56,7 +72,7 @@ class TEX {
         return shaderProgram;
     }
 
-    createShader(gl: WebGL2RenderingContext, sourceCode: string, type: number): WebGLShader {
+    createShader(gl: WebGLRenderingContext, sourceCode: string, type: number): WebGLShader {
         var shader: WebGLShader = gl.createShader(type)!;
         gl.shaderSource(shader, sourceCode);
         gl.compileShader(shader);
@@ -70,7 +86,7 @@ class TEX {
         return shader;
     }
     
-    createQuadBuffer(gl: WebGL2RenderingContext) {
+    createQuadBuffer(gl: WebGLRenderingContext) {
 
         // Create a buffer for the square's positions.
       
@@ -101,7 +117,7 @@ class TEX {
         return positionBuffer
     }
 
-    clear(gl: WebGL2RenderingContext) {
+    clear(gl: WebGLRenderingContext) {
         gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
         gl.clearDepth(1.0);                 // Clear everything
         gl.enable(gl.DEPTH_TEST);           // Enable depth testing
@@ -110,7 +126,7 @@ class TEX {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     }
 
-    draw(gl: WebGL2RenderingContext, program: WebGLProgram, quadBuffer: WebGLBuffer) {
+    draw(gl: WebGLRenderingContext, program: WebGLProgram, quadBuffer: WebGLBuffer) {
         
         {
             const numComponents = 2;  // pull out 2 values per iteration
@@ -118,7 +134,7 @@ class TEX {
             const normalize = false;  // don't normalize
             const stride = 0;         // how many bytes to get from one set of values to the next
                                     // 0 = use type and numComponents above
-            const attribPosition = this.gl.getAttribLocation(this.shaderProgram, 'position');
+            const attribPosition = this.gl.getAttribLocation(program, 'position');
             const offset = 0;         // how many bytes inside the buffer to start from
             gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
             gl.vertexAttribPointer(

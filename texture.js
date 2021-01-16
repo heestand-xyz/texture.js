@@ -12,25 +12,42 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-var fs = require('fs');
-// import fs from 'fs'
+var shaderFolder = "../shaders/";
 var TEX = /** @class */ (function () {
     function TEX(name, canvas) {
+        var _this = this;
         this.name = name;
         this.canvas = canvas;
-        this.gl = this.canvas.getContext("webgl2");
+        this.gl = this.canvas.getContext("webgl");
+        this.loadShader(name, function (source) {
+            _this.setup(source);
+        });
+    }
+    TEX.prototype.setup = function (fragmentShaderSource) {
         var vertexShaderSource = "attribute vec4 position; void main() { gl_Position = position; }";
-        var fragmentShaderSource = this.readShader(name);
-        this.vertexShader = this.createShader(this.gl, vertexShaderSource, this.gl.VERTEX_SHADER);
-        this.fragmentShader = this.createShader(this.gl, fragmentShaderSource, this.gl.FRAGMENT_SHADER);
-        this.shaderProgram = this.createProgram(this.gl, this.vertexShader, this.fragmentShader);
+        var vertexShader = this.createShader(this.gl, vertexShaderSource, this.gl.VERTEX_SHADER);
+        var fragmentShader = this.createShader(this.gl, fragmentShaderSource, this.gl.FRAGMENT_SHADER);
+        var shaderProgram = this.createProgram(this.gl, vertexShader, fragmentShader);
         var quadBuffer = this.createQuadBuffer(this.gl);
         this.clear(this.gl);
-        this.draw(this.gl, this.shaderProgram, quadBuffer);
-    }
-    TEX.prototype.readShader = function (name) {
-        var path = "shaders/" + name + ".frag";
-        return fs.readFileSync(path, "utf8");
+        this.draw(this.gl, shaderProgram, quadBuffer);
+    };
+    // readShader(name: string): string {
+    //     let path: string = "shaders/" + name + ".frag"
+    //     return fs.readFileSync(path, "utf8")
+    // }
+    TEX.prototype.loadShader = function (name, loaded) {
+        var path = shaderFolder + name + ".frag";
+        var rawFile = new XMLHttpRequest();
+        rawFile.open("GET", path, false);
+        rawFile.onreadystatechange = function () {
+            if (rawFile.readyState === 4) {
+                if (rawFile.status === 200 || rawFile.status == 0) {
+                    loaded(rawFile.responseText);
+                }
+            }
+        };
+        rawFile.send(null);
     };
     TEX.prototype.createProgram = function (gl, vertexShader, fragmentShader) {
         var shaderProgram = gl.createProgram();
@@ -91,7 +108,7 @@ var TEX = /** @class */ (function () {
             var normalize = false; // don't normalize
             var stride = 0; // how many bytes to get from one set of values to the next
             // 0 = use type and numComponents above
-            var attribPosition = this.gl.getAttribLocation(this.shaderProgram, 'position');
+            var attribPosition = this.gl.getAttribLocation(program, 'position');
             var offset = 0; // how many bytes inside the buffer to start from
             gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
             gl.vertexAttribPointer(attribPosition, numComponents, type, normalize, stride, offset);

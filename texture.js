@@ -1,12 +1,4 @@
 "use strict";
-// class Resolution {
-//     width: number
-//     height: number
-//     constructor(width: number, height: number) {
-//         this.width = width
-//         this.height = height
-//     }
-// }
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
@@ -20,33 +12,105 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
+var fs = require('fs');
+// import fs from 'fs'
 var TEX = /** @class */ (function () {
-    function TEX(canvas, shaderSource) {
+    function TEX(name, canvas) {
+        this.name = name;
         this.canvas = canvas;
         this.gl = this.canvas.getContext("webgl2");
-        var vertexShaderSource = 'attribute vec4 position;\n' +
-            'void main() {\n' +
-            '  gl_Position = position;\n' +
-            '}\n';
+        var vertexShaderSource = "attribute vec4 position; void main() { gl_Position = position; }";
+        var fragmentShaderSource = this.readShader(name);
         this.vertexShader = this.createShader(this.gl, vertexShaderSource, this.gl.VERTEX_SHADER);
-        this.fragmentShader = this.createShader(this.gl, shaderSource, this.gl.FRAGMENT_SHADER);
+        this.fragmentShader = this.createShader(this.gl, fragmentShaderSource, this.gl.FRAGMENT_SHADER);
+        this.shaderProgram = this.createProgram(this.gl, this.vertexShader, this.fragmentShader);
+        var quadBuffer = this.createQuadBuffer(this.gl);
+        this.clear(this.gl);
+        this.draw(this.gl, this.shaderProgram, quadBuffer);
     }
+    TEX.prototype.readShader = function (name) {
+        var path = "shaders/" + name + ".frag";
+        return fs.readFileSync(path, "utf8");
+    };
+    TEX.prototype.createProgram = function (gl, vertexShader, fragmentShader) {
+        var shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, vertexShader);
+        gl.attachShader(shaderProgram, fragmentShader);
+        gl.linkProgram(shaderProgram);
+        // If creating the shader program failed, alert
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+            var info = gl.getProgramInfoLog(shaderProgram);
+            console.log("GL Program Error:", info);
+            throw 'GL Program Error.\n\n' + info;
+        }
+        return shaderProgram;
+    };
     TEX.prototype.createShader = function (gl, sourceCode, type) {
         var shader = gl.createShader(type);
         gl.shaderSource(shader, sourceCode);
         gl.compileShader(shader);
         if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
             var info = gl.getShaderInfoLog(shader);
-            throw 'Could not compile WebGL program. \n\n' + info;
+            gl.deleteShader(shader);
+            console.log("GL Shader Error:", info);
+            throw 'GL Shader Error.\n\n' + info;
         }
         return shader;
+    };
+    TEX.prototype.createQuadBuffer = function (gl) {
+        // Create a buffer for the square's positions.
+        var positionBuffer = gl.createBuffer();
+        // Select the positionBuffer as the one to apply buffer
+        // operations to from here out.
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        // Now create an array of positions for the square.
+        var positions = [
+            -1.0, 1.0,
+            1.0, 1.0,
+            -1.0, -1.0,
+            1.0, -1.0,
+        ];
+        // Now pass the list of positions into WebGL to build the
+        // shape. We do this by creating a Float32Array from the
+        // JavaScript array, then use it to fill the current buffer.
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+        return positionBuffer;
+    };
+    TEX.prototype.clear = function (gl) {
+        gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
+        gl.clearDepth(1.0); // Clear everything
+        gl.enable(gl.DEPTH_TEST); // Enable depth testing
+        gl.depthFunc(gl.LEQUAL); // Near things obscure far things
+        // Clear the canvas before we start drawing on it.
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    };
+    TEX.prototype.draw = function (gl, program, quadBuffer) {
+        {
+            var numComponents = 2; // pull out 2 values per iteration
+            var type = gl.FLOAT; // the data in the buffer is 32bit floats
+            var normalize = false; // don't normalize
+            var stride = 0; // how many bytes to get from one set of values to the next
+            // 0 = use type and numComponents above
+            var attribPosition = this.gl.getAttribLocation(this.shaderProgram, 'position');
+            var offset = 0; // how many bytes inside the buffer to start from
+            gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+            gl.vertexAttribPointer(attribPosition, numComponents, type, normalize, stride, offset);
+            gl.enableVertexAttribArray(attribPosition);
+        }
+        // Tell WebGL to use our program when drawing
+        gl.useProgram(program);
+        {
+            var offset = 0;
+            var vertexCount = 4;
+            gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
+        }
     };
     return TEX;
 }());
 var TEXIn = /** @class */ (function (_super) {
     __extends(TEXIn, _super);
-    function TEXIn(canvas, inTex, shaderSource) {
-        var _this = _super.call(this, canvas, shaderSource) || this;
+    function TEXIn(name, canvas, inTex) {
+        var _this = _super.call(this, name, canvas) || this;
         _this.inTex = inTex;
         return _this;
     }
@@ -56,12 +120,9 @@ var TEXIn = /** @class */ (function (_super) {
 var CircleTEX = /** @class */ (function (_super) {
     __extends(CircleTEX, _super);
     function CircleTEX(canvas, radius) {
-        var _this = _super.call(this, canvas, "") || this;
+        var _this = _super.call(this, "CircleTEX", canvas) || this;
         _this.radius = radius;
         return _this;
-        // this.context.beginPath();
-        // this.context.arc(100, 75, 50, 0, 2 * Math.PI);
-        // this.context.stroke();
     }
     return CircleTEX;
 }(TEX));
@@ -69,7 +130,7 @@ var CircleTEX = /** @class */ (function (_super) {
 var SaturationTEX = /** @class */ (function (_super) {
     __extends(SaturationTEX, _super);
     function SaturationTEX(canvas, inTex, saturation) {
-        var _this = _super.call(this, canvas, inTex, "") || this;
+        var _this = _super.call(this, "SaturationTEX", canvas, inTex) || this;
         _this.saturation = saturation;
         return _this;
     }

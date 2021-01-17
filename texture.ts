@@ -11,12 +11,6 @@ class Color {
     }
 }
 
-enum UniformType {
-    bool,
-    int,
-    float,
-}
-
 // TEX
 
 class TEX {
@@ -30,7 +24,12 @@ class TEX {
     
     shaderProgram!: WebGLProgram
     quadBuffer!: WebGLBuffer
-    
+
+    uniformBools: () => Record<string, boolean> = function _(): Record<string, boolean> { return {} }
+    uniformInts: () => Record<string, number> = function _(): Record<string, number> { return {} }
+    uniformFloats: () => Record<string, number> = function _(): Record<string, number> { return {} }
+    uniformColors: () => Record<string, Color> = function _(): Record<string, Color> { return {} }
+
     constructor(name: string, canvas: HTMLCanvasElement) {
 
         this.name = name
@@ -150,30 +149,41 @@ class TEX {
 
         console.log("texture.js draw " + this.name)
         
-        // {
-        //     const numComponents = 2;  // pull out 2 values per iteration
-        //     const type = this.gl.FLOAT;    // the data in the buffer is 32bit floats
-        //     const normalize = false;  // don't normalize
-        //     const stride = 0;         // how many bytes to get from one set of values to the next
-        //                             // 0 = use type and numComponents above
-        //     const attribPosition = this.gl.getAttribLocation(this.shaderProgram, 'position');
-        //     const offset = 0;         // how many bytes inside the buffer to start from
-        //     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.quadBuffer);
-        //     this.gl.vertexAttribPointer(
-        //         attribPosition,
-        //         numComponents,
-        //         type,
-        //         normalize,
-        //         stride,
-        //         offset);
-        //     this.gl.enableVertexAttribArray(attribPosition);
-        // }
+        {
+            const numComponents = 2;  // pull out 2 values per iteration
+            const type = this.gl.FLOAT;    // the data in the buffer is 32bit floats
+            const normalize = false;  // don't normalize
+            const stride = 0;         // how many bytes to get from one set of values to the next
+                                    // 0 = use type and numComponents above
+            const attribPosition = this.gl.getAttribLocation(this.shaderProgram, 'position');
+            const offset = 0;         // how many bytes inside the buffer to start from
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.quadBuffer);
+            this.gl.vertexAttribPointer(
+                attribPosition,
+                numComponents,
+                type,
+                normalize,
+                stride,
+                offset);
+            this.gl.enableVertexAttribArray(attribPosition);
+        }
 
         this.gl.useProgram(this.shaderProgram);
+
+
 
         let resolutionLocation: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, "u_resolution")!
         this.gl.uniform2i(resolutionLocation, this.canvas.width, this.canvas.height)
         
+        const uniformColors: Record<number, Color> = this.uniformColors();
+        for (var key in uniformColors) {
+            let value = uniformColors[key];
+            console.log(this.name, "Color", key, value);
+            let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
+            this.gl.uniform4f(location, value.red, value.green, value.blue, value.alpha);
+        }
+
+
         {
             const offset = 0;
             const vertexCount = 4;
@@ -201,11 +211,16 @@ class TEXContent extends TEX {
         this.backgroundColor = new Color(0.0, 0.0, 0.0, 1.0)
         this.foregroundColor = new Color(1.0, 1.0, 1.0, 1.0)
 
+        this.uniformColors = function _(): Record<string, Color> {
+            let uniforms: Record<string, Color> = {};
+            uniforms["u_backgroundColor"] = this.backgroundColor;
+            uniforms["u_foregroundColor"] = this.foregroundColor;
+            return uniforms
+        }
+        super.draw()
+
     }
 
-    // uniformFloat(): number {
-    //     return 0.0
-    // }
 }
 
 class CircleTEX extends TEXContent {

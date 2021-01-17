@@ -21,16 +21,14 @@ var Color = /** @class */ (function () {
     }
     return Color;
 }());
-var UniformType;
-(function (UniformType) {
-    UniformType[UniformType["bool"] = 0] = "bool";
-    UniformType[UniformType["int"] = 1] = "int";
-    UniformType[UniformType["float"] = 2] = "float";
-})(UniformType || (UniformType = {}));
 // TEX
 var TEX = /** @class */ (function () {
     function TEX(name, canvas) {
         var _this = this;
+        this.uniformBools = function _() { return {}; };
+        this.uniformInts = function _() { return {}; };
+        this.uniformFloats = function _() { return {}; };
+        this.uniformColors = function _() { return {}; };
         this.name = name;
         this.canvas = canvas;
         this.gl = this.canvas.getContext("webgl");
@@ -114,27 +112,28 @@ var TEX = /** @class */ (function () {
     TEX.prototype.draw = function () {
         this.clear(this.gl);
         console.log("texture.js draw " + this.name);
-        // {
-        //     const numComponents = 2;  // pull out 2 values per iteration
-        //     const type = this.gl.FLOAT;    // the data in the buffer is 32bit floats
-        //     const normalize = false;  // don't normalize
-        //     const stride = 0;         // how many bytes to get from one set of values to the next
-        //                             // 0 = use type and numComponents above
-        //     const attribPosition = this.gl.getAttribLocation(this.shaderProgram, 'position');
-        //     const offset = 0;         // how many bytes inside the buffer to start from
-        //     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.quadBuffer);
-        //     this.gl.vertexAttribPointer(
-        //         attribPosition,
-        //         numComponents,
-        //         type,
-        //         normalize,
-        //         stride,
-        //         offset);
-        //     this.gl.enableVertexAttribArray(attribPosition);
-        // }
+        {
+            var numComponents = 2; // pull out 2 values per iteration
+            var type = this.gl.FLOAT; // the data in the buffer is 32bit floats
+            var normalize = false; // don't normalize
+            var stride = 0; // how many bytes to get from one set of values to the next
+            // 0 = use type and numComponents above
+            var attribPosition = this.gl.getAttribLocation(this.shaderProgram, 'position');
+            var offset = 0; // how many bytes inside the buffer to start from
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.quadBuffer);
+            this.gl.vertexAttribPointer(attribPosition, numComponents, type, normalize, stride, offset);
+            this.gl.enableVertexAttribArray(attribPosition);
+        }
         this.gl.useProgram(this.shaderProgram);
         var resolutionLocation = this.gl.getUniformLocation(this.shaderProgram, "u_resolution");
         this.gl.uniform2i(resolutionLocation, this.canvas.width, this.canvas.height);
+        var uniformColors = this.uniformColors();
+        for (var key in uniformColors) {
+            var value = uniformColors[key];
+            console.log(this.name, "Color", key, value);
+            var location_1 = this.gl.getUniformLocation(this.shaderProgram, key);
+            this.gl.uniform4f(location_1, value.red, value.green, value.blue, value.alpha);
+        }
         {
             var offset = 0;
             var vertexCount = 4;
@@ -151,6 +150,13 @@ var TEXContent = /** @class */ (function (_super) {
         var _this = _super.call(this, name, canvas) || this;
         _this.backgroundColor = new Color(0.0, 0.0, 0.0, 1.0);
         _this.foregroundColor = new Color(1.0, 1.0, 1.0, 1.0);
+        _this.uniformColors = function _() {
+            var uniforms = {};
+            uniforms["u_backgroundColor"] = this.backgroundColor;
+            uniforms["u_foregroundColor"] = this.foregroundColor;
+            return uniforms;
+        };
+        _super.prototype.draw.call(_this);
         return _this;
     }
     return TEXContent;

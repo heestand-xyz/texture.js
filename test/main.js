@@ -24,6 +24,10 @@ const polygonTex = new PolygonTEX(canvasTwo, 0.75)
 const blendTexA = new SaturationTEX(canvasThree, circleTex, 0.25)
 const blendTexB = new BlendTEX(canvasFour, polygonTex)
 
+
+// circleTex.foregroundColor = new Color(0.0, 1.0, 0.0, 1.0)
+
+
 // function draw() {
 //     circle.draw()
 //     polygon.draw()

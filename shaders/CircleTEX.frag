@@ -4,6 +4,8 @@ precision mediump float;
 
 uniform ivec2 u_resolution;
 // uniform float u_radius;
+uniform vec4 u_foregroundColor;
+uniform vec4 u_backgroundColor;
 
 void main() {
     
@@ -22,7 +24,7 @@ void main() {
     } else if (distance < (u_radius + onePixel / 2.0)) {
         light = 1.0 - (distance - (u_radius - onePixel / 2.0)) / onePixel;
     }
-    vec4 color = vec4(vec3(light), 1.0);
+    vec4 color = u_backgroundColor * (1.0 - light) + u_foregroundColor * light;
     if (u_premultiply) {
         color = color * color.a;
     }

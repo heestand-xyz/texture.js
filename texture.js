@@ -28,6 +28,13 @@ var Position = /** @class */ (function () {
     }
     return Position;
 }());
+var Resolution = /** @class */ (function () {
+    function Resolution(width, height) {
+        this.width = width;
+        this.height = height;
+    }
+    return Resolution;
+}());
 // TEX
 var TEX = /** @class */ (function () {
     function TEX(shaderName, canvas) {
@@ -36,6 +43,7 @@ var TEX = /** @class */ (function () {
         this.uniformInts = function _() { return {}; };
         this.uniformFloats = function _() { return {}; };
         this.uniformPositions = function _() { return {}; };
+        this.uniformResolutions = function _() { return {}; };
         this.uniformColors = function _() { return {}; };
         this.shaderName = shaderName;
         this.canvas = canvas;
@@ -133,8 +141,12 @@ var TEX = /** @class */ (function () {
             this.gl.enableVertexAttribArray(attribPosition);
         }
         this.gl.useProgram(this.shaderProgram);
+        // Resolution
         var resolutionLocation = this.gl.getUniformLocation(this.shaderProgram, "u_resolution");
         this.gl.uniform2i(resolutionLocation, this.canvas.width, this.canvas.height);
+        // Sampler
+        var samplerLocation = this.gl.getUniformLocation(this.shaderProgram, 'u_sampler');
+        this.gl.uniform1i(samplerLocation, 0);
         // Bools
         var uniformBools = this.uniformBools();
         for (var key in uniformBools) {
@@ -163,12 +175,19 @@ var TEX = /** @class */ (function () {
             var location_4 = this.gl.getUniformLocation(this.shaderProgram, key);
             this.gl.uniform2f(location_4, value.x, value.y);
         }
+        // Resolutions
+        var uniformResolutions = this.uniformResolutions();
+        for (var key in uniformResolutions) {
+            var value = uniformResolutions[key];
+            var location_5 = this.gl.getUniformLocation(this.shaderProgram, key);
+            this.gl.uniform2i(location_5, value.width, value.height);
+        }
         // Colors
         var uniformColors = this.uniformColors();
         for (var key in uniformColors) {
             var value = uniformColors[key];
-            var location_5 = this.gl.getUniformLocation(this.shaderProgram, key);
-            this.gl.uniform4f(location_5, value.red, value.green, value.blue, value.alpha);
+            var location_6 = this.gl.getUniformLocation(this.shaderProgram, key);
+            this.gl.uniform4f(location_6, value.red, value.green, value.blue, value.alpha);
         }
         {
             var offset = 0;
@@ -187,13 +206,68 @@ var TEXContent = /** @class */ (function (_super) {
     }
     return TEXContent;
 }(TEX));
+var TEXResource = /** @class */ (function (_super) {
+    __extends(TEXResource, _super);
+    function TEXResource(shaderName, canvas) {
+        var _this = _super.call(this, shaderName, canvas) || this;
+        _this.texture = null;
+        return _this;
+    }
+    return TEXResource;
+}(TEXContent));
 var ImageTEX = /** @class */ (function (_super) {
     __extends(ImageTEX, _super);
-    function ImageTEX(canvas) {
-        return _super.call(this, "NullTEX", canvas) || this;
+    function ImageTEX(canvas, image) {
+        var _this = _super.call(this, "ImageTEX", canvas) || this;
+        _this._imageResolution = null;
+        _this.image = image;
+        _this.uniformResolutions = function _() {
+            var _a;
+            var uniforms = {};
+            uniforms["u_imageResolution"] = (_a = this.imageResolution) !== null && _a !== void 0 ? _a : new Resolution(1, 1);
+            return uniforms;
+        };
+        if (image != null) {
+            _this.loadImage(image);
+        }
+        return _this;
     }
+    Object.defineProperty(ImageTEX.prototype, "imageResolution", {
+        get: function () { return this._imageResolution; },
+        set: function (value) { this._imageResolution = value; this.draw(); },
+        enumerable: false,
+        configurable: true
+    });
+    ImageTEX.prototype.loadImage = function (image) {
+        this.imageResolution = new Resolution(image.width, image.height);
+        this.texture = this.loadTexture(image);
+        //     const vsSource = `
+        //     attribute vec4 aVertexPosition;
+        //     attribute vec2 aTextureCoord;
+        //     uniform mat4 uModelViewMatrix;
+        //     uniform mat4 uProjectionMatrix;
+        //     varying highp vec2 vTextureCoord;
+        //     void main(void) {
+        //     gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+        //     vTextureCoord = aTextureCoord;
+        //     }
+        // `;
+        _super.prototype.draw.call(this);
+    };
+    ImageTEX.prototype.loadTexture = function (image) {
+        var texture = this.gl.createTexture();
+        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+        var level = 0;
+        var format = this.gl.RGBA;
+        var type = this.gl.UNSIGNED_BYTE;
+        this.gl.texImage2D(this.gl.TEXTURE_2D, level, format, format, type, image);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+        return texture;
+    };
     return ImageTEX;
-}(TEXContent));
+}(TEXResource));
 // TEX Generator
 var TEXGenerator = /** @class */ (function (_super) {
     __extends(TEXGenerator, _super);

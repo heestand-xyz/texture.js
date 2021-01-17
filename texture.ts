@@ -20,6 +20,15 @@ class Position {
     }
 }
 
+class Resolution {
+    width: number
+    height: number
+    constructor(width: number, height: number) {
+        this.width = width
+        this.height = height
+    }
+}
+
 // TEX
 
 class TEX {
@@ -38,6 +47,7 @@ class TEX {
     uniformInts: () => Record<string, number> = function _(): Record<string, number> { return {} }
     uniformFloats: () => Record<string, number> = function _(): Record<string, number> { return {} }
     uniformPositions: () => Record<string, Position> = function _(): Record<string, Position> { return {} }
+    uniformResolutions: () => Record<string, Resolution> = function _(): Record<string, Resolution> { return {} }
     uniformColors: () => Record<string, Color> = function _(): Record<string, Color> { return {} }
 
     constructor(shaderName: string, canvas: HTMLCanvasElement) {
@@ -180,11 +190,15 @@ class TEX {
 
         this.gl.useProgram(this.shaderProgram);
 
-
+        // Resolution
 
         let resolutionLocation: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, "u_resolution")!
         this.gl.uniform2i(resolutionLocation, this.canvas.width, this.canvas.height)
         
+        // Sampler
+        const samplerLocation = this.gl.getUniformLocation(this.shaderProgram, 'u_sampler');
+        this.gl.uniform1i(samplerLocation, 0);
+
         // Bools
         const uniformBools: Record<string, boolean> = this.uniformBools();
         for (var key in uniformBools) {
@@ -217,6 +231,14 @@ class TEX {
             this.gl.uniform2f(location, value.x, value.y);
         }
 
+        // Resolutions
+        const uniformResolutions: Record<string, Resolution> = this.uniformResolutions();
+        for (var key in uniformResolutions) {
+            let value = uniformResolutions[key];
+            let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
+            this.gl.uniform2i(location, value.width, value.height);
+        }
+
         // Colors
         const uniformColors: Record<string, Color> = this.uniformColors();
         for (var key in uniformColors) {
@@ -247,11 +269,79 @@ class TEXContent extends TEX {
 
 }
 
-class ImageTEX extends TEXContent {
+class TEXResource extends TEXContent {
     
-    constructor(canvas: HTMLCanvasElement) {
+    texture: WebGLTexture | null = null
+
+    constructor(shaderName: string, canvas: HTMLCanvasElement) {
         
-        super("NullTEX", canvas)
+        super(shaderName, canvas)
+
+    }
+
+}
+
+class ImageTEX extends TEXResource {
+    
+    image: TexImageSource | null
+
+    _imageResolution: Resolution | null = null
+    public get imageResolution(): Resolution | null { return this._imageResolution }
+    public set imageResolution(value: Resolution | null) { this._imageResolution = value; this.draw(); }
+    
+    constructor(canvas: HTMLCanvasElement, image: TexImageSource | null) {
+        
+        super("ImageTEX", canvas)
+
+        this.image = image
+
+        this.uniformResolutions = function _(): Record<string, Resolution> {
+            let uniforms: Record<string, Resolution> = {};
+            uniforms["u_imageResolution"] = this.imageResolution ?? new Resolution(1, 1);
+            return uniforms
+        }
+
+        if (image != null) {
+            this.loadImage(image!)
+        }
+
+    }
+
+    public loadImage(image: TexImageSource) {
+        this.imageResolution = new Resolution(image!.width, image!.height)
+        this.texture = this.loadTexture(image)
+        //     const vsSource = `
+        //     attribute vec4 aVertexPosition;
+        //     attribute vec2 aTextureCoord;
+
+        //     uniform mat4 uModelViewMatrix;
+        //     uniform mat4 uProjectionMatrix;
+
+        //     varying highp vec2 vTextureCoord;
+
+        //     void main(void) {
+        //     gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+        //     vTextureCoord = aTextureCoord;
+        //     }
+        // `;
+        super.draw()
+    }
+    
+    loadTexture(image: TexImageSource): WebGLTexture {
+
+        const texture = this.gl.createTexture()!;
+        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+
+        const level = 0;
+        const format = this.gl.RGBA;
+        const type = this.gl.UNSIGNED_BYTE;
+        this.gl.texImage2D(this.gl.TEXTURE_2D, level, format, format, type, image);
+
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+
+        return texture
 
     }
 

@@ -1,3 +1,23 @@
+class Color {
+    red: number
+    green: number
+    blue: number
+    alpha: number
+    constructor(red: number, green: number, blue: number, alpha: number) {
+        this.red = red
+        this.green = green
+        this.blue = blue
+        this.alpha = alpha
+    }
+}
+
+enum UniformType {
+    bool,
+    int,
+    float,
+}
+
+// TEX
 
 class TEX {
     
@@ -160,31 +180,42 @@ class TEX {
             this.gl.drawArrays(this.gl.TRIANGLE_STRIP, offset, vertexCount);
         }
     }
-
-}
-
-class TEXIn extends TEX {
     
-    inTex?: TEX
-
-    constructor(name: string, canvas: HTMLCanvasElement, inTex: TEX) {
-        
-        super(name, canvas)
-        this.inTex = inTex
-
-    }
+    // uniforms(): [any] | null {
+    //     return null
+    // }
 
 }
 
 // Content
 
-class CircleTEX extends TEX {
+class TEXContent extends TEX {
+
+    backgroundColor: Color
+    foregroundColor: Color
+
+    constructor(name: string, canvas: HTMLCanvasElement) {
+        
+        super(name, canvas)
+
+        this.backgroundColor = new Color(0.0, 0.0, 0.0, 1.0)
+        this.foregroundColor = new Color(1.0, 1.0, 1.0, 1.0)
+
+    }
+
+    // uniformFloat(): number {
+    //     return 0.0
+    // }
+}
+
+class CircleTEX extends TEXContent {
 
     radius: number
 
     constructor(canvas: HTMLCanvasElement, radius: number) {
         
         super("CircleTEX", canvas)
+
         this.radius = radius
 
     }
@@ -198,13 +229,14 @@ class CircleTEX extends TEX {
 
 }
 
-class PolygonTEX extends TEX {
+class PolygonTEX extends TEXContent {
 
     radius: number
 
     constructor(canvas: HTMLCanvasElement, radius: number) {
         
         super("PolygonTEX", canvas)
+
         this.radius = radius
 
     }
@@ -213,14 +245,39 @@ class PolygonTEX extends TEX {
 
 // Effects
 
-class SaturationTEX extends TEXIn {
+class TEXEffect extends TEX {
+    
+    inTex?: TEX
+
+    constructor(name: string, canvas: HTMLCanvasElement, inTex: TEX) {
+        
+        super(name, canvas)
+        
+        this.inTex = inTex
+
+    }
+
+}
+
+class SaturationTEX extends TEXEffect {
 
     saturation: number
 
     constructor(canvas: HTMLCanvasElement, inTex: TEX, saturation: number) {
 
         super("SaturationTEX", canvas, inTex)
+
         this.saturation = saturation
+
+    }
+
+}
+
+class BlendTEX extends TEXEffect {
+
+    constructor(canvas: HTMLCanvasElement, inTex: TEX) {
+
+        super("BlendTEX", canvas, inTex)
 
     }
 

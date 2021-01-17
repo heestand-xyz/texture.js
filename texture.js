@@ -12,6 +12,22 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
+var Color = /** @class */ (function () {
+    function Color(red, green, blue, alpha) {
+        this.red = red;
+        this.green = green;
+        this.blue = blue;
+        this.alpha = alpha;
+    }
+    return Color;
+}());
+var UniformType;
+(function (UniformType) {
+    UniformType[UniformType["bool"] = 0] = "bool";
+    UniformType[UniformType["int"] = 1] = "int";
+    UniformType[UniformType["float"] = 2] = "float";
+})(UniformType || (UniformType = {}));
+// TEX
 var TEX = /** @class */ (function () {
     function TEX(name, canvas) {
         var _this = this;
@@ -98,18 +114,24 @@ var TEX = /** @class */ (function () {
     TEX.prototype.draw = function () {
         this.clear(this.gl);
         console.log("texture.js draw " + this.name);
-        {
-            var numComponents = 2; // pull out 2 values per iteration
-            var type = this.gl.FLOAT; // the data in the buffer is 32bit floats
-            var normalize = false; // don't normalize
-            var stride = 0; // how many bytes to get from one set of values to the next
-            // 0 = use type and numComponents above
-            var attribPosition = this.gl.getAttribLocation(this.shaderProgram, 'position');
-            var offset = 0; // how many bytes inside the buffer to start from
-            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.quadBuffer);
-            this.gl.vertexAttribPointer(attribPosition, numComponents, type, normalize, stride, offset);
-            this.gl.enableVertexAttribArray(attribPosition);
-        }
+        // {
+        //     const numComponents = 2;  // pull out 2 values per iteration
+        //     const type = this.gl.FLOAT;    // the data in the buffer is 32bit floats
+        //     const normalize = false;  // don't normalize
+        //     const stride = 0;         // how many bytes to get from one set of values to the next
+        //                             // 0 = use type and numComponents above
+        //     const attribPosition = this.gl.getAttribLocation(this.shaderProgram, 'position');
+        //     const offset = 0;         // how many bytes inside the buffer to start from
+        //     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.quadBuffer);
+        //     this.gl.vertexAttribPointer(
+        //         attribPosition,
+        //         numComponents,
+        //         type,
+        //         normalize,
+        //         stride,
+        //         offset);
+        //     this.gl.enableVertexAttribArray(attribPosition);
+        // }
         this.gl.useProgram(this.shaderProgram);
         var resolutionLocation = this.gl.getUniformLocation(this.shaderProgram, "u_resolution");
         this.gl.uniform2i(resolutionLocation, this.canvas.width, this.canvas.height);
@@ -122,16 +144,17 @@ var TEX = /** @class */ (function () {
     TEX.shaderFolder = "shaders/";
     return TEX;
 }());
-var TEXIn = /** @class */ (function (_super) {
-    __extends(TEXIn, _super);
-    function TEXIn(name, canvas, inTex) {
+// Content
+var TEXContent = /** @class */ (function (_super) {
+    __extends(TEXContent, _super);
+    function TEXContent(name, canvas) {
         var _this = _super.call(this, name, canvas) || this;
-        _this.inTex = inTex;
+        _this.backgroundColor = new Color(0.0, 0.0, 0.0, 1.0);
+        _this.foregroundColor = new Color(1.0, 1.0, 1.0, 1.0);
         return _this;
     }
-    return TEXIn;
+    return TEXContent;
 }(TEX));
-// Content
 var CircleTEX = /** @class */ (function (_super) {
     __extends(CircleTEX, _super);
     function CircleTEX(canvas, radius) {
@@ -140,7 +163,7 @@ var CircleTEX = /** @class */ (function (_super) {
         return _this;
     }
     return CircleTEX;
-}(TEX));
+}(TEXContent));
 var PolygonTEX = /** @class */ (function (_super) {
     __extends(PolygonTEX, _super);
     function PolygonTEX(canvas, radius) {
@@ -149,8 +172,17 @@ var PolygonTEX = /** @class */ (function (_super) {
         return _this;
     }
     return PolygonTEX;
-}(TEX));
+}(TEXContent));
 // Effects
+var TEXEffect = /** @class */ (function (_super) {
+    __extends(TEXEffect, _super);
+    function TEXEffect(name, canvas, inTex) {
+        var _this = _super.call(this, name, canvas) || this;
+        _this.inTex = inTex;
+        return _this;
+    }
+    return TEXEffect;
+}(TEX));
 var SaturationTEX = /** @class */ (function (_super) {
     __extends(SaturationTEX, _super);
     function SaturationTEX(canvas, inTex, saturation) {
@@ -159,4 +191,11 @@ var SaturationTEX = /** @class */ (function (_super) {
         return _this;
     }
     return SaturationTEX;
-}(TEXIn));
+}(TEXEffect));
+var BlendTEX = /** @class */ (function (_super) {
+    __extends(BlendTEX, _super);
+    function BlendTEX(canvas, inTex) {
+        return _super.call(this, "BlendTEX", canvas, inTex) || this;
+    }
+    return BlendTEX;
+}(TEXEffect));

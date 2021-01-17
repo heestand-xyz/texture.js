@@ -230,11 +230,8 @@ class TEX {
             const vertexCount = 4;
             this.gl.drawArrays(this.gl.TRIANGLE_STRIP, offset, vertexCount);
         }
+
     }
-    
-    // uniforms(): [any] | null {
-    //     return null
-    // }
 
 }
 
@@ -242,25 +239,21 @@ class TEX {
 
 class TEXContent extends TEX {
 
-    _backgroundColor: Color
+    _backgroundColor: Color = new Color(0.0, 0.0, 0.0, 1.0)
     public get backgroundColor(): Color { return this._backgroundColor }
     public set backgroundColor(value: Color) { this._backgroundColor = value; this.draw(); }
     
-    _foregroundColor: Color
+    _foregroundColor: Color = new Color(1.0, 1.0, 1.0, 1.0)
     public get foregroundColor(): Color { return this._foregroundColor }
     public set foregroundColor(value: Color) { this._foregroundColor = value; this.draw(); }
 
-    _position: Position
+    _position: Position = new Position(0.0, 0.0)
     public get position(): Position { return this._position }
     public set position(value: Position) { this._position = value; this.draw(); }
 
     constructor(name: string, canvas: HTMLCanvasElement) {
         
         super(name, canvas)
-
-        this._backgroundColor = new Color(0.0, 0.0, 0.0, 1.0)
-        this._foregroundColor = new Color(1.0, 1.0, 1.0, 1.0)
-        this._position = new Position(0.0, 0.0)
 
         this.uniformPositions = function _(): Record<string, Position> {
             let uniforms: Record<string, Position> = {};
@@ -281,15 +274,13 @@ class TEXContent extends TEX {
 
 class CircleTEX extends TEXContent {
 
-    _radius: number
+    _radius: number = 0.25
     public get radius(): number { return this._radius }
     public set radius(value: number) { this._radius = value; this.draw(); }
 
-    constructor(canvas: HTMLCanvasElement, radius: number) {
+    constructor(canvas: HTMLCanvasElement) {
         
         super("CircleTEX", canvas)
-
-        this._radius = radius
 
         this.uniformFloats = function _(): Record<string, number> {
             let uniforms: Record<string, number> = {};
@@ -311,19 +302,36 @@ class CircleTEX extends TEXContent {
 
 class PolygonTEX extends TEXContent {
 
-    _radius: number
+    _radius: number = 0.25
     public get radius(): number { return this._radius }
     public set radius(value: number) { this._radius = value; this.draw(); }
 
-    constructor(canvas: HTMLCanvasElement, radius: number) {
+    _rotation: number = 0.0
+    public get rotation(): number { return this._rotation }
+    public set rotation(value: number) { this._rotation = value; this.draw(); }
+
+    _vertexCount: number = 3
+    public get vertexCount(): number { return this._vertexCount }
+    public set vertexCount(value: number) { this._vertexCount = value; this.draw(); }
+
+    _cornerRadius: number = 0.0
+    public get cornerRadius(): number { return this._cornerRadius }
+    public set cornerRadius(value: number) { this._cornerRadius = value; this.draw(); }
+
+    constructor(canvas: HTMLCanvasElement) {
         
         super("PolygonTEX", canvas)
-
-        this._radius = radius
 
         this.uniformFloats = function _(): Record<string, number> {
             let uniforms: Record<string, number> = {};
             uniforms["u_radius"] = this.radius;
+            uniforms["u_rotation"] = this.rotation;
+            uniforms["u_cornerRadius"] = this.cornerRadius;
+            return uniforms
+        }
+        this.uniformInts = function _(): Record<string, number> {
+            let uniforms: Record<string, number> = {};
+            uniforms["u_vertexCount"] = this.vertexCount;
             return uniforms
         }
         super.draw()
@@ -350,13 +358,11 @@ class TEXEffect extends TEX {
 
 class SaturationTEX extends TEXEffect {
 
-    saturation: number
+    saturation: number = 1.0
 
-    constructor(canvas: HTMLCanvasElement, inTex: TEX, saturation: number) {
+    constructor(canvas: HTMLCanvasElement, inTex: TEX) {
 
         super("SaturationTEX", canvas, inTex)
-
-        this.saturation = saturation
 
     }
 

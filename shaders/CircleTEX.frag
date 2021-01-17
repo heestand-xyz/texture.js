@@ -3,10 +3,10 @@ precision mediump float;
 #endif
 
 uniform ivec2 u_resolution;
-uniform float u_radius;
-uniform vec2 u_position;
 uniform vec4 u_foregroundColor;
 uniform vec4 u_backgroundColor;
+uniform vec2 u_position;
+uniform float u_radius;
 // uniform bool u_premultiply;
 
 void main() {

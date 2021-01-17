@@ -223,9 +223,9 @@ var TEXContent = /** @class */ (function (_super) {
 }(TEX));
 var CircleTEX = /** @class */ (function (_super) {
     __extends(CircleTEX, _super);
-    function CircleTEX(canvas, radius) {
+    function CircleTEX(canvas) {
         var _this = _super.call(this, "CircleTEX", canvas) || this;
-        _this._radius = radius;
+        _this._radius = 0.25;
         _this.uniformFloats = function _() {
             var uniforms = {};
             uniforms["u_radius"] = this.radius;
@@ -244,12 +244,22 @@ var CircleTEX = /** @class */ (function (_super) {
 }(TEXContent));
 var PolygonTEX = /** @class */ (function (_super) {
     __extends(PolygonTEX, _super);
-    function PolygonTEX(canvas, radius) {
+    function PolygonTEX(canvas) {
         var _this = _super.call(this, "PolygonTEX", canvas) || this;
-        _this._radius = radius;
+        _this._radius = 0.25;
+        _this._rotation = 0.0;
+        _this._vertexCount = 3;
+        _this._cornerRadius = 0.0;
         _this.uniformFloats = function _() {
             var uniforms = {};
             uniforms["u_radius"] = this.radius;
+            uniforms["u_rotation"] = this.rotation;
+            uniforms["u_cornerRadius"] = this.cornerRadius;
+            return uniforms;
+        };
+        _this.uniformInts = function _() {
+            var uniforms = {};
+            uniforms["u_vertexCount"] = this.vertexCount;
             return uniforms;
         };
         _super.prototype.draw.call(_this);
@@ -258,6 +268,24 @@ var PolygonTEX = /** @class */ (function (_super) {
     Object.defineProperty(PolygonTEX.prototype, "radius", {
         get: function () { return this._radius; },
         set: function (value) { this._radius = value; this.draw(); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(PolygonTEX.prototype, "rotation", {
+        get: function () { return this._rotation; },
+        set: function (value) { this._rotation = value; this.draw(); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(PolygonTEX.prototype, "vertexCount", {
+        get: function () { return this._vertexCount; },
+        set: function (value) { this._vertexCount = value; this.draw(); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(PolygonTEX.prototype, "cornerRadius", {
+        get: function () { return this._cornerRadius; },
+        set: function (value) { this._cornerRadius = value; this.draw(); },
         enumerable: false,
         configurable: true
     });
@@ -275,9 +303,9 @@ var TEXEffect = /** @class */ (function (_super) {
 }(TEX));
 var SaturationTEX = /** @class */ (function (_super) {
     __extends(SaturationTEX, _super);
-    function SaturationTEX(canvas, inTex, saturation) {
+    function SaturationTEX(canvas, inTex) {
         var _this = _super.call(this, "SaturationTEX", canvas, inTex) || this;
-        _this.saturation = saturation;
+        _this.saturation = 1.0;
         return _this;
     }
     return SaturationTEX;

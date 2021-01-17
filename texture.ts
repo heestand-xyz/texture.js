@@ -257,19 +257,9 @@ class TEX {
 
 }
 
-// TEX Content
+// TEX Resource
 
-class TEXContent extends TEX {
-
-    constructor(shaderName: string, canvas: HTMLCanvasElement) {
-        
-        super(shaderName, canvas)
-
-    }
-
-}
-
-class TEXResource extends TEXContent {
+class TEXResource extends TEX {
     
     texture: WebGLTexture | null = null
 
@@ -349,7 +339,7 @@ class ImageTEX extends TEXResource {
 
 // TEX Generator
 
-class TEXGenerator extends TEXContent {
+class TEXGenerator extends TEX {
 
     _backgroundColor: Color = new Color(0.0, 0.0, 0.0, 1.0)
     public get backgroundColor(): Color { return this._backgroundColor }
@@ -454,18 +444,16 @@ class PolygonTEX extends TEXGenerator {
 
 }
 
-// Effects
+// TEX Effect
 
 class TEXEffect extends TEX {
-    
+
     input?: TEX
 
-    constructor(shaderName: string, canvas: HTMLCanvasElement, input: TEX) {
+    constructor(shaderName: string, canvas: HTMLCanvasElement) {
         
         super(shaderName, canvas)
         
-        this.input = input
-
     }
 
 }
@@ -482,7 +470,7 @@ class ColorShiftTEX extends TEXEffect {
 
     constructor(canvas: HTMLCanvasElement, input: TEX) {
 
-        super("ColorShiftTEX", canvas, input)
+        super("ColorShiftTEX", canvas)
 
         this.uniformFloats = function _(): Record<string, number> {
             let uniforms: Record<string, number> = {};
@@ -496,11 +484,26 @@ class ColorShiftTEX extends TEXEffect {
 
 }
 
-class BlendTEX extends TEXEffect {
+// TEX Merge Effect
 
-    constructor(canvas: HTMLCanvasElement, input: TEX) {
+class TEXMergeEffect extends TEX {
 
-        super("BlendTEX", canvas, input)
+    inputA?: TEX
+    inputB?: TEX
+
+    constructor(shaderName: string, canvas: HTMLCanvasElement) {
+        
+        super(shaderName, canvas)
+        
+    }
+
+}
+
+class BlendTEX extends TEXMergeEffect {
+
+    constructor(canvas: HTMLCanvasElement) {
+
+        super("BlendTEX", canvas)
 
     }
 

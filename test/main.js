@@ -28,12 +28,14 @@ circleTex.color = new Color(1.0, 0.5, 0.0, 1.0)
 const polygonTex = new PolygonTEX(canvasTwo)
 polygonTex.color = new Color(0.0, 0.5, 1.0, 1.0)
 
-const imageTex = new ImageTEX(canvasThree)
-let image = new Image();
-image.src = "http://heestand.xyz/assets/images/kite.jpg"
-image.onload = function() {
-    imageTex.loadImage(image)
-}
+// const imageTex = new ImageTEX(canvasThree)
+// let image = new Image();
+// image.src = "http://heestand.xyz/assets/images/kite.jpg"
+// image.onload = function() {
+//     imageTex.loadImage(image)
+// }
+
+const blendTex = new BlendTEX(canvasThree, circleTex, polygonTex)
 
 
 const colorShiftTex = new ColorShiftTEX(canvasFour, circleTex)

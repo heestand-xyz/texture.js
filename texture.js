@@ -198,14 +198,7 @@ var TEX = /** @class */ (function () {
     TEX.shaderFolder = "shaders/";
     return TEX;
 }());
-// TEX Content
-var TEXContent = /** @class */ (function (_super) {
-    __extends(TEXContent, _super);
-    function TEXContent(shaderName, canvas) {
-        return _super.call(this, shaderName, canvas) || this;
-    }
-    return TEXContent;
-}(TEX));
+// TEX Resource
 var TEXResource = /** @class */ (function (_super) {
     __extends(TEXResource, _super);
     function TEXResource(shaderName, canvas) {
@@ -214,7 +207,7 @@ var TEXResource = /** @class */ (function (_super) {
         return _this;
     }
     return TEXResource;
-}(TEXContent));
+}(TEX));
 var ImageTEX = /** @class */ (function (_super) {
     __extends(ImageTEX, _super);
     function ImageTEX(canvas, image) {
@@ -309,7 +302,7 @@ var TEXGenerator = /** @class */ (function (_super) {
         configurable: true
     });
     return TEXGenerator;
-}(TEXContent));
+}(TEX));
 var CircleTEX = /** @class */ (function (_super) {
     __extends(CircleTEX, _super);
     function CircleTEX(canvas) {
@@ -388,20 +381,18 @@ var PolygonTEX = /** @class */ (function (_super) {
     });
     return PolygonTEX;
 }(TEXGenerator));
-// Effects
+// TEX Effect
 var TEXEffect = /** @class */ (function (_super) {
     __extends(TEXEffect, _super);
-    function TEXEffect(shaderName, canvas, input) {
-        var _this = _super.call(this, shaderName, canvas) || this;
-        _this.input = input;
-        return _this;
+    function TEXEffect(shaderName, canvas) {
+        return _super.call(this, shaderName, canvas) || this;
     }
     return TEXEffect;
 }(TEX));
 var ColorShiftTEX = /** @class */ (function (_super) {
     __extends(ColorShiftTEX, _super);
     function ColorShiftTEX(canvas, input) {
-        var _this = _super.call(this, "ColorShiftTEX", canvas, input) || this;
+        var _this = _super.call(this, "ColorShiftTEX", canvas) || this;
         _this._hue = 0.0;
         _this._saturation = 1.0;
         _this.uniformFloats = function _() {
@@ -427,10 +418,18 @@ var ColorShiftTEX = /** @class */ (function (_super) {
     });
     return ColorShiftTEX;
 }(TEXEffect));
+// TEX Merge Effect
+var TEXMergeEffect = /** @class */ (function (_super) {
+    __extends(TEXMergeEffect, _super);
+    function TEXMergeEffect(shaderName, canvas) {
+        return _super.call(this, shaderName, canvas) || this;
+    }
+    return TEXMergeEffect;
+}(TEX));
 var BlendTEX = /** @class */ (function (_super) {
     __extends(BlendTEX, _super);
-    function BlendTEX(canvas, input) {
-        return _super.call(this, "BlendTEX", canvas, input) || this;
+    function BlendTEX(canvas) {
+        return _super.call(this, "BlendTEX", canvas) || this;
     }
     return BlendTEX;
-}(TEXEffect));
+}(TEXMergeEffect));

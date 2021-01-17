@@ -12,7 +12,6 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-var shaderFolder = "../shaders/";
 var TEX = /** @class */ (function () {
     function TEX(name, canvas) {
         var _this = this;
@@ -23,21 +22,8 @@ var TEX = /** @class */ (function () {
             _this.setup(source);
         });
     }
-    TEX.prototype.setup = function (fragmentShaderSource) {
-        var vertexShaderSource = "attribute vec4 position; void main() { gl_Position = position; }";
-        var vertexShader = this.createShader(this.gl, vertexShaderSource, this.gl.VERTEX_SHADER);
-        var fragmentShader = this.createShader(this.gl, fragmentShaderSource, this.gl.FRAGMENT_SHADER);
-        var shaderProgram = this.createProgram(this.gl, vertexShader, fragmentShader);
-        var quadBuffer = this.createQuadBuffer(this.gl);
-        this.clear(this.gl);
-        this.draw(this.gl, shaderProgram, quadBuffer);
-    };
-    // readShader(name: string): string {
-    //     let path: string = "shaders/" + name + ".frag"
-    //     return fs.readFileSync(path, "utf8")
-    // }
     TEX.prototype.loadShader = function (name, loaded) {
-        var path = shaderFolder + name + ".frag";
+        var path = TEX.shaderFolder + name + ".frag";
         var rawFile = new XMLHttpRequest();
         rawFile.open("GET", path, false);
         rawFile.onreadystatechange = function () {
@@ -48,6 +34,14 @@ var TEX = /** @class */ (function () {
             }
         };
         rawFile.send(null);
+    };
+    TEX.prototype.setup = function (fragmentShaderSource) {
+        var vertexShaderSource = "attribute vec4 position; void main() { gl_Position = position; }";
+        var vertexShader = this.createShader(this.gl, vertexShaderSource, this.gl.VERTEX_SHADER);
+        var fragmentShader = this.createShader(this.gl, fragmentShaderSource, this.gl.FRAGMENT_SHADER);
+        this.shaderProgram = this.createProgram(this.gl, vertexShader, fragmentShader);
+        this.quadBuffer = this.createQuadBuffer(this.gl);
+        this.draw();
     };
     TEX.prototype.createProgram = function (gl, vertexShader, fragmentShader) {
         var shaderProgram = gl.createProgram();
@@ -101,27 +95,31 @@ var TEX = /** @class */ (function () {
         // Clear the canvas before we start drawing on it.
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     };
-    TEX.prototype.draw = function (gl, program, quadBuffer) {
+    TEX.prototype.draw = function () {
+        this.clear(this.gl);
+        console.log("texture.js draw " + this.name);
         {
             var numComponents = 2; // pull out 2 values per iteration
-            var type = gl.FLOAT; // the data in the buffer is 32bit floats
+            var type = this.gl.FLOAT; // the data in the buffer is 32bit floats
             var normalize = false; // don't normalize
             var stride = 0; // how many bytes to get from one set of values to the next
             // 0 = use type and numComponents above
-            var attribPosition = this.gl.getAttribLocation(program, 'position');
+            var attribPosition = this.gl.getAttribLocation(this.shaderProgram, 'position');
             var offset = 0; // how many bytes inside the buffer to start from
-            gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
-            gl.vertexAttribPointer(attribPosition, numComponents, type, normalize, stride, offset);
-            gl.enableVertexAttribArray(attribPosition);
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.quadBuffer);
+            this.gl.vertexAttribPointer(attribPosition, numComponents, type, normalize, stride, offset);
+            this.gl.enableVertexAttribArray(attribPosition);
         }
-        // Tell WebGL to use our program when drawing
-        gl.useProgram(program);
+        this.gl.useProgram(this.shaderProgram);
+        var resolutionLocation = this.gl.getUniformLocation(this.shaderProgram, "u_resolution");
+        this.gl.uniform2i(resolutionLocation, this.canvas.width, this.canvas.height);
         {
             var offset = 0;
             var vertexCount = 4;
-            gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
+            this.gl.drawArrays(this.gl.TRIANGLE_STRIP, offset, vertexCount);
         }
     };
+    TEX.shaderFolder = "shaders/";
     return TEX;
 }());
 var TEXIn = /** @class */ (function (_super) {
@@ -142,6 +140,15 @@ var CircleTEX = /** @class */ (function (_super) {
         return _this;
     }
     return CircleTEX;
+}(TEX));
+var PolygonTEX = /** @class */ (function (_super) {
+    __extends(PolygonTEX, _super);
+    function PolygonTEX(canvas, radius) {
+        var _this = _super.call(this, "PolygonTEX", canvas) || this;
+        _this.radius = radius;
+        return _this;
+    }
+    return PolygonTEX;
 }(TEX));
 // Effects
 var SaturationTEX = /** @class */ (function (_super) {

@@ -2,10 +2,12 @@ console.log("texture.js test")
 
 TEX.shaderFolder = "../shaders/"
 
+
 var canvasOne = document.getElementById("canvasOne");
 var canvasTwo = document.getElementById("canvasTwo");
 var canvasThree = document.getElementById("canvasThree");
 var canvasFour = document.getElementById("canvasFour");
+
 
 function resize() {
     canvasOne.width = canvasOne.clientWidth
@@ -19,10 +21,17 @@ function resize() {
 }
 resize()
 
+
 const circleTex = new CircleTEX(canvasOne)
 const polygonTex = new PolygonTEX(canvasTwo)
-const blendTexA = new SaturationTEX(canvasThree, circleTex)
-const blendTexB = new BlendTEX(canvasFour, polygonTex)
+
+circleTex.color = new Color(1.0, 0.5, 0.0, 1.0)
+polygonTex.color = new Color(0.0, 0.5, 1.0, 1.0)
+
+const colorShiftTex = new ColorShiftTEX(canvasThree, circleTex)
+
+// const blendTexB = new BlendTEX(canvasFour, polygonTex)
+
 
 // canvasOne.addEventListener('mousemove', e => {
 //     circleTex.radius = Math.abs(e.offsetY / canvasOne.clientHeight - 0.5)

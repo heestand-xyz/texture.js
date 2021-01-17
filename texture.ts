@@ -243,9 +243,9 @@ class TEXContent extends TEX {
     public get backgroundColor(): Color { return this._backgroundColor }
     public set backgroundColor(value: Color) { this._backgroundColor = value; this.draw(); }
     
-    _foregroundColor: Color = new Color(1.0, 1.0, 1.0, 1.0)
-    public get foregroundColor(): Color { return this._foregroundColor }
-    public set foregroundColor(value: Color) { this._foregroundColor = value; this.draw(); }
+    _color: Color = new Color(1.0, 1.0, 1.0, 1.0)
+    public get color(): Color { return this._color }
+    public set color(value: Color) { this._color = value; this.draw(); }
 
     _position: Position = new Position(0.0, 0.0)
     public get position(): Position { return this._position }
@@ -263,7 +263,7 @@ class TEXContent extends TEX {
         this.uniformColors = function _(): Record<string, Color> {
             let uniforms: Record<string, Color> = {};
             uniforms["u_backgroundColor"] = this.backgroundColor;
-            uniforms["u_foregroundColor"] = this.foregroundColor;
+            uniforms["u_color"] = this.color;
             return uniforms
         }
         super.draw()
@@ -290,13 +290,6 @@ class CircleTEX extends TEXContent {
         super.draw()
 
     }
-
-    // uniforms(): [string: float] {
-        
-    //     let resolutionLocation: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, "u_resolution")!
-    //     this.gl.uniform2i(resolutionLocation, this.canvas.width, this.canvas.height)
-        
-    // }
 
 }
 
@@ -356,13 +349,27 @@ class TEXEffect extends TEX {
 
 }
 
-class SaturationTEX extends TEXEffect {
+class ColorShiftTEX extends TEXEffect {
 
-    saturation: number = 1.0
+    _hue: number = 0.0
+    public get hue(): number { return this._hue }
+    public set hue(value: number) { this._hue = value; this.draw(); }
+
+    _saturation: number = 1.0
+    public get saturation(): number { return this._saturation }
+    public set saturation(value: number) { this._saturation = value; this.draw(); }
 
     constructor(canvas: HTMLCanvasElement, inTex: TEX) {
 
-        super("SaturationTEX", canvas, inTex)
+        super("ColorShiftTEX", canvas, inTex)
+
+        this.uniformFloats = function _(): Record<string, number> {
+            let uniforms: Record<string, number> = {};
+            uniforms["u_hue"] = this.hue;
+            uniforms["u_saturation"] = this.saturation;
+            return uniforms
+        }
+        super.draw()
 
     }
 

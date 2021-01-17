@@ -6,14 +6,16 @@ const int MAX_VERTEX_COUNT = 32;
 const int ANTI_ALIASING_COUNT = 4;
 
 uniform ivec2 u_resolution;
-uniform vec4 u_foregroundColor;
+// uniform bool u_premultiply;
+
 uniform vec4 u_backgroundColor;
+uniform vec4 u_color;
 uniform vec2 u_position;
+
 uniform float u_radius;
 uniform float u_rotation;
 uniform int u_vertexCount;
 uniform float u_cornerRadius;
-// uniform bool u_premultiply;
 // uniform bool u_antiAliasing;
 
 vec2 lerp2d(float fraction, vec2 from, vec2 to) {
@@ -177,7 +179,7 @@ void main() {
     if (!u_antiAliasing) {
         bool inPolygon = roundedPolygon(uv, space, aspect, u_vertexCount, u_position, u_radius, u_rotation, u_cornerRadius);
         if (inPolygon) {
-            color = u_foregroundColor;
+            color = u_color;
         }
     } else {
         float aaLight = 0.0;
@@ -189,7 +191,7 @@ void main() {
                 aaLight += 1.0 / float(ANTI_ALIASING_COUNT);
             }
         }
-        color = u_backgroundColor * (1.0 - aaLight) + u_foregroundColor * aaLight;
+        color = u_backgroundColor * (1.0 - aaLight) + u_color * aaLight;
     }
     if (u_premultiply) {
         color = color * color.a;

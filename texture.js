@@ -185,7 +185,7 @@ var TEXContent = /** @class */ (function (_super) {
     function TEXContent(name, canvas) {
         var _this = _super.call(this, name, canvas) || this;
         _this._backgroundColor = new Color(0.0, 0.0, 0.0, 1.0);
-        _this._foregroundColor = new Color(1.0, 1.0, 1.0, 1.0);
+        _this._color = new Color(1.0, 1.0, 1.0, 1.0);
         _this._position = new Position(0.0, 0.0);
         _this.uniformPositions = function _() {
             var uniforms = {};
@@ -195,7 +195,7 @@ var TEXContent = /** @class */ (function (_super) {
         _this.uniformColors = function _() {
             var uniforms = {};
             uniforms["u_backgroundColor"] = this.backgroundColor;
-            uniforms["u_foregroundColor"] = this.foregroundColor;
+            uniforms["u_color"] = this.color;
             return uniforms;
         };
         _super.prototype.draw.call(_this);
@@ -207,9 +207,9 @@ var TEXContent = /** @class */ (function (_super) {
         enumerable: false,
         configurable: true
     });
-    Object.defineProperty(TEXContent.prototype, "foregroundColor", {
-        get: function () { return this._foregroundColor; },
-        set: function (value) { this._foregroundColor = value; this.draw(); },
+    Object.defineProperty(TEXContent.prototype, "color", {
+        get: function () { return this._color; },
+        set: function (value) { this._color = value; this.draw(); },
         enumerable: false,
         configurable: true
     });
@@ -301,14 +301,34 @@ var TEXEffect = /** @class */ (function (_super) {
     }
     return TEXEffect;
 }(TEX));
-var SaturationTEX = /** @class */ (function (_super) {
-    __extends(SaturationTEX, _super);
-    function SaturationTEX(canvas, inTex) {
-        var _this = _super.call(this, "SaturationTEX", canvas, inTex) || this;
-        _this.saturation = 1.0;
+var ColorShiftTEX = /** @class */ (function (_super) {
+    __extends(ColorShiftTEX, _super);
+    function ColorShiftTEX(canvas, inTex) {
+        var _this = _super.call(this, "ColorShiftTEX", canvas, inTex) || this;
+        _this._hue = 0.0;
+        _this._saturation = 1.0;
+        _this.uniformFloats = function _() {
+            var uniforms = {};
+            uniforms["u_hue"] = this.hue;
+            uniforms["u_saturation"] = this.saturation;
+            return uniforms;
+        };
+        _super.prototype.draw.call(_this);
         return _this;
     }
-    return SaturationTEX;
+    Object.defineProperty(ColorShiftTEX.prototype, "hue", {
+        get: function () { return this._hue; },
+        set: function (value) { this._hue = value; this.draw(); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(ColorShiftTEX.prototype, "saturation", {
+        get: function () { return this._saturation; },
+        set: function (value) { this._saturation = value; this.draw(); },
+        enumerable: false,
+        configurable: true
+    });
+    return ColorShiftTEX;
 }(TEXEffect));
 var BlendTEX = /** @class */ (function (_super) {
     __extends(BlendTEX, _super);

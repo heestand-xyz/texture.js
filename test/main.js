@@ -30,9 +30,8 @@ const polygonTex = new PolygonTEX(canvasTwo)
 circleTex.color = new Color(1.0, 0.5, 0.0, 1.0)
 polygonTex.color = new Color(0.0, 0.5, 1.0, 1.0)
 
-const colorShiftTex = new ColorShiftTEX(canvasThree, circleTex)
-
-// const blendTexB = new BlendTEX(canvasFour, polygonTex)
+const imageTex = new ImageTEX(canvasThree)
+const colorShiftTex = new ColorShiftTEX(canvasFour, circleTex)
 
 
 // canvasOne.addEventListener('mousemove', e => {

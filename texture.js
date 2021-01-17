@@ -30,22 +30,22 @@ var Position = /** @class */ (function () {
 }());
 // TEX
 var TEX = /** @class */ (function () {
-    function TEX(name, canvas) {
+    function TEX(shaderName, canvas) {
         var _this = this;
         this.uniformBools = function _() { return {}; };
         this.uniformInts = function _() { return {}; };
         this.uniformFloats = function _() { return {}; };
         this.uniformPositions = function _() { return {}; };
         this.uniformColors = function _() { return {}; };
-        this.name = name;
+        this.shaderName = shaderName;
         this.canvas = canvas;
         this.gl = this.canvas.getContext("webgl");
-        this.loadShader(name, function (source) {
+        this.loadShader(shaderName, function (source) {
             _this.setup(source);
         });
     }
-    TEX.prototype.loadShader = function (name, loaded) {
-        var path = TEX.shaderFolder + name + ".frag";
+    TEX.prototype.loadShader = function (shaderName, loaded) {
+        var path = TEX.shaderFolder + shaderName + ".frag";
         var rawFile = new XMLHttpRequest();
         rawFile.open("GET", path, false);
         rawFile.onreadystatechange = function () {
@@ -119,7 +119,7 @@ var TEX = /** @class */ (function () {
     };
     TEX.prototype.draw = function () {
         this.clear(this.gl);
-        console.log("texture.js draw " + this.name);
+        // console.log("texture.js draw " + this.name)
         {
             var numComponents = 2; // pull out 2 values per iteration
             var type = this.gl.FLOAT; // the data in the buffer is 32bit floats
@@ -179,11 +179,26 @@ var TEX = /** @class */ (function () {
     TEX.shaderFolder = "shaders/";
     return TEX;
 }());
-// Content
+// TEX Content
 var TEXContent = /** @class */ (function (_super) {
     __extends(TEXContent, _super);
-    function TEXContent(name, canvas) {
-        var _this = _super.call(this, name, canvas) || this;
+    function TEXContent(shaderName, canvas) {
+        return _super.call(this, shaderName, canvas) || this;
+    }
+    return TEXContent;
+}(TEX));
+var ImageTEX = /** @class */ (function (_super) {
+    __extends(ImageTEX, _super);
+    function ImageTEX(canvas) {
+        return _super.call(this, "NullTEX", canvas) || this;
+    }
+    return ImageTEX;
+}(TEXContent));
+// TEX Generator
+var TEXGenerator = /** @class */ (function (_super) {
+    __extends(TEXGenerator, _super);
+    function TEXGenerator(shaderName, canvas) {
+        var _this = _super.call(this, shaderName, canvas) || this;
         _this._backgroundColor = new Color(0.0, 0.0, 0.0, 1.0);
         _this._color = new Color(1.0, 1.0, 1.0, 1.0);
         _this._position = new Position(0.0, 0.0);
@@ -201,26 +216,26 @@ var TEXContent = /** @class */ (function (_super) {
         _super.prototype.draw.call(_this);
         return _this;
     }
-    Object.defineProperty(TEXContent.prototype, "backgroundColor", {
+    Object.defineProperty(TEXGenerator.prototype, "backgroundColor", {
         get: function () { return this._backgroundColor; },
         set: function (value) { this._backgroundColor = value; this.draw(); },
         enumerable: false,
         configurable: true
     });
-    Object.defineProperty(TEXContent.prototype, "color", {
+    Object.defineProperty(TEXGenerator.prototype, "color", {
         get: function () { return this._color; },
         set: function (value) { this._color = value; this.draw(); },
         enumerable: false,
         configurable: true
     });
-    Object.defineProperty(TEXContent.prototype, "position", {
+    Object.defineProperty(TEXGenerator.prototype, "position", {
         get: function () { return this._position; },
         set: function (value) { this._position = value; this.draw(); },
         enumerable: false,
         configurable: true
     });
-    return TEXContent;
-}(TEX));
+    return TEXGenerator;
+}(TEXContent));
 var CircleTEX = /** @class */ (function (_super) {
     __extends(CircleTEX, _super);
     function CircleTEX(canvas) {
@@ -241,7 +256,7 @@ var CircleTEX = /** @class */ (function (_super) {
         configurable: true
     });
     return CircleTEX;
-}(TEXContent));
+}(TEXGenerator));
 var PolygonTEX = /** @class */ (function (_super) {
     __extends(PolygonTEX, _super);
     // _antiAliased: boolean = true
@@ -298,21 +313,21 @@ var PolygonTEX = /** @class */ (function (_super) {
         configurable: true
     });
     return PolygonTEX;
-}(TEXContent));
+}(TEXGenerator));
 // Effects
 var TEXEffect = /** @class */ (function (_super) {
     __extends(TEXEffect, _super);
-    function TEXEffect(name, canvas, inTex) {
-        var _this = _super.call(this, name, canvas) || this;
-        _this.inTex = inTex;
+    function TEXEffect(shaderName, canvas, input) {
+        var _this = _super.call(this, shaderName, canvas) || this;
+        _this.input = input;
         return _this;
     }
     return TEXEffect;
 }(TEX));
 var ColorShiftTEX = /** @class */ (function (_super) {
     __extends(ColorShiftTEX, _super);
-    function ColorShiftTEX(canvas, inTex) {
-        var _this = _super.call(this, "ColorShiftTEX", canvas, inTex) || this;
+    function ColorShiftTEX(canvas, input) {
+        var _this = _super.call(this, "ColorShiftTEX", canvas, input) || this;
         _this._hue = 0.0;
         _this._saturation = 1.0;
         _this.uniformFloats = function _() {
@@ -340,8 +355,8 @@ var ColorShiftTEX = /** @class */ (function (_super) {
 }(TEXEffect));
 var BlendTEX = /** @class */ (function (_super) {
     __extends(BlendTEX, _super);
-    function BlendTEX(canvas, inTex) {
-        return _super.call(this, "BlendTEX", canvas, inTex) || this;
+    function BlendTEX(canvas, input) {
+        return _super.call(this, "BlendTEX", canvas, input) || this;
     }
     return BlendTEX;
 }(TEXEffect));

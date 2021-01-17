@@ -26,7 +26,7 @@ class TEX {
     
     static shaderFolder =  "shaders/"
 
-    name: string
+    shaderName: string
 
     canvas: HTMLCanvasElement
     gl: WebGLRenderingContext
@@ -40,21 +40,21 @@ class TEX {
     uniformPositions: () => Record<string, Position> = function _(): Record<string, Position> { return {} }
     uniformColors: () => Record<string, Color> = function _(): Record<string, Color> { return {} }
 
-    constructor(name: string, canvas: HTMLCanvasElement) {
+    constructor(shaderName: string, canvas: HTMLCanvasElement) {
 
-        this.name = name
+        this.shaderName = shaderName
 
         this.canvas = canvas
         this.gl = this.canvas.getContext("webgl")!
 
-        this.loadShader(name, (source: string) : void => {
+        this.loadShader(shaderName, (source: string) : void => {
             this.setup(source)
         })
 
     }
 
-    loadShader(name: string, loaded: (_: string) => (void)) {
-        let path: string = TEX.shaderFolder + name + ".frag"
+    loadShader(shaderName: string, loaded: (_: string) => (void)) {
+        let path: string = TEX.shaderFolder + shaderName + ".frag"
         var rawFile = new XMLHttpRequest();
         rawFile.open("GET", path, false);
         rawFile.onreadystatechange = function () {
@@ -157,7 +157,7 @@ class TEX {
       
         this.clear(this.gl)
 
-        console.log("texture.js draw " + this.name)
+        // console.log("texture.js draw " + this.name)
         
         {
             const numComponents = 2;  // pull out 2 values per iteration
@@ -235,9 +235,31 @@ class TEX {
 
 }
 
-// Content
+// TEX Content
 
 class TEXContent extends TEX {
+
+    constructor(shaderName: string, canvas: HTMLCanvasElement) {
+        
+        super(shaderName, canvas)
+
+    }
+
+}
+
+class ImageTEX extends TEXContent {
+    
+    constructor(canvas: HTMLCanvasElement) {
+        
+        super("NullTEX", canvas)
+
+    }
+
+}
+
+// TEX Generator
+
+class TEXGenerator extends TEXContent {
 
     _backgroundColor: Color = new Color(0.0, 0.0, 0.0, 1.0)
     public get backgroundColor(): Color { return this._backgroundColor }
@@ -251,9 +273,9 @@ class TEXContent extends TEX {
     public get position(): Position { return this._position }
     public set position(value: Position) { this._position = value; this.draw(); }
 
-    constructor(name: string, canvas: HTMLCanvasElement) {
+    constructor(shaderName: string, canvas: HTMLCanvasElement) {
         
-        super(name, canvas)
+        super(shaderName, canvas)
 
         this.uniformPositions = function _(): Record<string, Position> {
             let uniforms: Record<string, Position> = {};
@@ -272,7 +294,7 @@ class TEXContent extends TEX {
 
 }
 
-class CircleTEX extends TEXContent {
+class CircleTEX extends TEXGenerator {
 
     _radius: number = 0.25
     public get radius(): number { return this._radius }
@@ -293,7 +315,7 @@ class CircleTEX extends TEXContent {
 
 }
 
-class PolygonTEX extends TEXContent {
+class PolygonTEX extends TEXGenerator {
 
     _radius: number = 0.25
     public get radius(): number { return this._radius }
@@ -346,13 +368,13 @@ class PolygonTEX extends TEXContent {
 
 class TEXEffect extends TEX {
     
-    inTex?: TEX
+    input?: TEX
 
-    constructor(name: string, canvas: HTMLCanvasElement, inTex: TEX) {
+    constructor(shaderName: string, canvas: HTMLCanvasElement, input: TEX) {
         
-        super(name, canvas)
+        super(shaderName, canvas)
         
-        this.inTex = inTex
+        this.input = input
 
     }
 
@@ -368,9 +390,9 @@ class ColorShiftTEX extends TEXEffect {
     public get saturation(): number { return this._saturation }
     public set saturation(value: number) { this._saturation = value; this.draw(); }
 
-    constructor(canvas: HTMLCanvasElement, inTex: TEX) {
+    constructor(canvas: HTMLCanvasElement, input: TEX) {
 
-        super("ColorShiftTEX", canvas, inTex)
+        super("ColorShiftTEX", canvas, input)
 
         this.uniformFloats = function _(): Record<string, number> {
             let uniforms: Record<string, number> = {};
@@ -386,9 +408,9 @@ class ColorShiftTEX extends TEXEffect {
 
 class BlendTEX extends TEXEffect {
 
-    constructor(canvas: HTMLCanvasElement, inTex: TEX) {
+    constructor(canvas: HTMLCanvasElement, input: TEX) {
 
-        super("BlendTEX", canvas, inTex)
+        super("BlendTEX", canvas, input)
 
     }
 

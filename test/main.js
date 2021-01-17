@@ -19,14 +19,16 @@ function resize() {
 }
 resize()
 
-const circleTex = new CircleTEX(canvasOne, 0.5)
-const polygonTex = new PolygonTEX(canvasTwo, 0.75)
+const circleTex = new CircleTEX(canvasOne, 0.25)
+const polygonTex = new PolygonTEX(canvasTwo, 0.25)
 const blendTexA = new SaturationTEX(canvasThree, circleTex, 0.25)
 const blendTexB = new BlendTEX(canvasFour, polygonTex)
 
 
-// circleTex.foregroundColor = new Color(0.0, 1.0, 0.0, 1.0)
-
+canvasOne.addEventListener('mousemove', e => {
+    circleTex.radius = Math.abs(e.offsetY / canvasOne.clientHeight - 0.5)
+    circleTex.position.x = (e.offsetX - canvasOne.clientWidth / 2.0) / canvasOne.clientHeight
+})
 
 // function draw() {
 //     circle.draw()

@@ -21,6 +21,13 @@ var Color = /** @class */ (function () {
     }
     return Color;
 }());
+var Position = /** @class */ (function () {
+    function Position(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+    return Position;
+}());
 // TEX
 var TEX = /** @class */ (function () {
     function TEX(name, canvas) {
@@ -28,6 +35,7 @@ var TEX = /** @class */ (function () {
         this.uniformBools = function _() { return {}; };
         this.uniformInts = function _() { return {}; };
         this.uniformFloats = function _() { return {}; };
+        this.uniformPositions = function _() { return {}; };
         this.uniformColors = function _() { return {}; };
         this.name = name;
         this.canvas = canvas;
@@ -127,12 +135,40 @@ var TEX = /** @class */ (function () {
         this.gl.useProgram(this.shaderProgram);
         var resolutionLocation = this.gl.getUniformLocation(this.shaderProgram, "u_resolution");
         this.gl.uniform2i(resolutionLocation, this.canvas.width, this.canvas.height);
+        // Bools
+        var uniformBools = this.uniformBools();
+        for (var key in uniformBools) {
+            var value = uniformBools[key];
+            var location_1 = this.gl.getUniformLocation(this.shaderProgram, key);
+            this.gl.uniform1i(location_1, value ? 1 : 0);
+        }
+        // Ints
+        var uniformInts = this.uniformInts();
+        for (var key in uniformInts) {
+            var value = uniformInts[key];
+            var location_2 = this.gl.getUniformLocation(this.shaderProgram, key);
+            this.gl.uniform1i(location_2, value);
+        }
+        // Floats
+        var uniformFloats = this.uniformFloats();
+        for (var key in uniformFloats) {
+            var value = uniformFloats[key];
+            var location_3 = this.gl.getUniformLocation(this.shaderProgram, key);
+            this.gl.uniform1f(location_3, value);
+        }
+        // Positions
+        var uniformPositions = this.uniformPositions();
+        for (var key in uniformPositions) {
+            var value = uniformPositions[key];
+            var location_4 = this.gl.getUniformLocation(this.shaderProgram, key);
+            this.gl.uniform2f(location_4, value.x, value.y);
+        }
+        // Colors
         var uniformColors = this.uniformColors();
         for (var key in uniformColors) {
             var value = uniformColors[key];
-            console.log(this.name, "Color", key, value);
-            var location_1 = this.gl.getUniformLocation(this.shaderProgram, key);
-            this.gl.uniform4f(location_1, value.red, value.green, value.blue, value.alpha);
+            var location_5 = this.gl.getUniformLocation(this.shaderProgram, key);
+            this.gl.uniform4f(location_5, value.red, value.green, value.blue, value.alpha);
         }
         {
             var offset = 0;
@@ -148,8 +184,14 @@ var TEXContent = /** @class */ (function (_super) {
     __extends(TEXContent, _super);
     function TEXContent(name, canvas) {
         var _this = _super.call(this, name, canvas) || this;
-        _this.backgroundColor = new Color(0.0, 0.0, 0.0, 1.0);
-        _this.foregroundColor = new Color(1.0, 1.0, 1.0, 1.0);
+        _this._backgroundColor = new Color(0.0, 0.0, 0.0, 1.0);
+        _this._foregroundColor = new Color(1.0, 1.0, 1.0, 1.0);
+        _this._position = new Position(0.0, 0.0);
+        _this.uniformPositions = function _() {
+            var uniforms = {};
+            uniforms["u_position"] = this.position;
+            return uniforms;
+        };
         _this.uniformColors = function _() {
             var uniforms = {};
             uniforms["u_backgroundColor"] = this.backgroundColor;
@@ -159,24 +201,66 @@ var TEXContent = /** @class */ (function (_super) {
         _super.prototype.draw.call(_this);
         return _this;
     }
+    Object.defineProperty(TEXContent.prototype, "backgroundColor", {
+        get: function () { return this._backgroundColor; },
+        set: function (value) { this._backgroundColor = value; this.draw(); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(TEXContent.prototype, "foregroundColor", {
+        get: function () { return this._foregroundColor; },
+        set: function (value) { this._foregroundColor = value; this.draw(); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(TEXContent.prototype, "position", {
+        get: function () { return this._position; },
+        set: function (value) { this._position = value; this.draw(); },
+        enumerable: false,
+        configurable: true
+    });
     return TEXContent;
 }(TEX));
 var CircleTEX = /** @class */ (function (_super) {
     __extends(CircleTEX, _super);
     function CircleTEX(canvas, radius) {
         var _this = _super.call(this, "CircleTEX", canvas) || this;
-        _this.radius = radius;
+        _this._radius = radius;
+        _this.uniformFloats = function _() {
+            var uniforms = {};
+            uniforms["u_radius"] = this.radius;
+            return uniforms;
+        };
+        _super.prototype.draw.call(_this);
         return _this;
     }
+    Object.defineProperty(CircleTEX.prototype, "radius", {
+        get: function () { return this._radius; },
+        set: function (value) { this._radius = value; this.draw(); },
+        enumerable: false,
+        configurable: true
+    });
     return CircleTEX;
 }(TEXContent));
 var PolygonTEX = /** @class */ (function (_super) {
     __extends(PolygonTEX, _super);
     function PolygonTEX(canvas, radius) {
         var _this = _super.call(this, "PolygonTEX", canvas) || this;
-        _this.radius = radius;
+        _this._radius = radius;
+        _this.uniformFloats = function _() {
+            var uniforms = {};
+            uniforms["u_radius"] = this.radius;
+            return uniforms;
+        };
+        _super.prototype.draw.call(_this);
         return _this;
     }
+    Object.defineProperty(PolygonTEX.prototype, "radius", {
+        get: function () { return this._radius; },
+        set: function (value) { this._radius = value; this.draw(); },
+        enumerable: false,
+        configurable: true
+    });
     return PolygonTEX;
 }(TEXContent));
 // Effects

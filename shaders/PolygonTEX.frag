@@ -6,8 +6,8 @@ const int MAX_VERTEX_COUNT = 32;
 const int ANTI_ALIASING_COUNT = 4;
 
 uniform ivec2 u_resolution;
-// uniform float u_radius;
-// uniform vec2 u_position;
+uniform float u_radius;
+uniform vec2 u_position;
 // uniform float u_rotation;
 // uniform int u_vertexCount;
 uniform vec4 u_foregroundColor;
@@ -170,8 +170,6 @@ void main() {
     vec2 space = vec2((uv.x - 0.5) * aspect, uv.y - 0.5);
     float onePixel = 1.0 / float(u_resolution.y);
 
-    float u_radius = 0.25;
-    vec2 u_position = vec2(0.0, 0.0);
     float u_rotation = 0.0;
     int u_vertexCount = 3;
     float u_cornerRadius = 0.05;

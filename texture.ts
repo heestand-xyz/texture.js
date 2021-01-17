@@ -11,6 +11,15 @@ class Color {
     }
 }
 
+class Position {
+    x: number
+    y: number
+    constructor(x: number, y: number) {
+        this.x = x
+        this.y = y
+    }
+}
+
 // TEX
 
 class TEX {
@@ -28,6 +37,7 @@ class TEX {
     uniformBools: () => Record<string, boolean> = function _(): Record<string, boolean> { return {} }
     uniformInts: () => Record<string, number> = function _(): Record<string, number> { return {} }
     uniformFloats: () => Record<string, number> = function _(): Record<string, number> { return {} }
+    uniformPositions: () => Record<string, Position> = function _(): Record<string, Position> { return {} }
     uniformColors: () => Record<string, Color> = function _(): Record<string, Color> { return {} }
 
     constructor(name: string, canvas: HTMLCanvasElement) {
@@ -175,14 +185,45 @@ class TEX {
         let resolutionLocation: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, "u_resolution")!
         this.gl.uniform2i(resolutionLocation, this.canvas.width, this.canvas.height)
         
-        const uniformColors: Record<number, Color> = this.uniformColors();
+        // Bools
+        const uniformBools: Record<string, boolean> = this.uniformBools();
+        for (var key in uniformBools) {
+            let value = uniformBools[key];
+            let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
+            this.gl.uniform1i(location, value ? 1 : 0);
+        }
+
+        // Ints
+        const uniformInts: Record<string, number> = this.uniformInts();
+        for (var key in uniformInts) {
+            let value = uniformInts[key];
+            let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
+            this.gl.uniform1i(location, value);
+        }
+
+        // Floats
+        const uniformFloats: Record<string, number> = this.uniformFloats();
+        for (var key in uniformFloats) {
+            let value = uniformFloats[key];
+            let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
+            this.gl.uniform1f(location, value);
+        }
+
+        // Positions
+        const uniformPositions: Record<string, Position> = this.uniformPositions();
+        for (var key in uniformPositions) {
+            let value = uniformPositions[key];
+            let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
+            this.gl.uniform2f(location, value.x, value.y);
+        }
+
+        // Colors
+        const uniformColors: Record<string, Color> = this.uniformColors();
         for (var key in uniformColors) {
             let value = uniformColors[key];
-            console.log(this.name, "Color", key, value);
             let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
             this.gl.uniform4f(location, value.red, value.green, value.blue, value.alpha);
         }
-
 
         {
             const offset = 0;
@@ -201,16 +242,31 @@ class TEX {
 
 class TEXContent extends TEX {
 
-    backgroundColor: Color
-    foregroundColor: Color
+    _backgroundColor: Color
+    public get backgroundColor(): Color { return this._backgroundColor }
+    public set backgroundColor(value: Color) { this._backgroundColor = value; this.draw(); }
+    
+    _foregroundColor: Color
+    public get foregroundColor(): Color { return this._foregroundColor }
+    public set foregroundColor(value: Color) { this._foregroundColor = value; this.draw(); }
+
+    _position: Position
+    public get position(): Position { return this._position }
+    public set position(value: Position) { this._position = value; this.draw(); }
 
     constructor(name: string, canvas: HTMLCanvasElement) {
         
         super(name, canvas)
 
-        this.backgroundColor = new Color(0.0, 0.0, 0.0, 1.0)
-        this.foregroundColor = new Color(1.0, 1.0, 1.0, 1.0)
+        this._backgroundColor = new Color(0.0, 0.0, 0.0, 1.0)
+        this._foregroundColor = new Color(1.0, 1.0, 1.0, 1.0)
+        this._position = new Position(0.0, 0.0)
 
+        this.uniformPositions = function _(): Record<string, Position> {
+            let uniforms: Record<string, Position> = {};
+            uniforms["u_position"] = this.position;
+            return uniforms
+        }
         this.uniformColors = function _(): Record<string, Color> {
             let uniforms: Record<string, Color> = {};
             uniforms["u_backgroundColor"] = this.backgroundColor;
@@ -225,13 +281,22 @@ class TEXContent extends TEX {
 
 class CircleTEX extends TEXContent {
 
-    radius: number
+    _radius: number
+    public get radius(): number { return this._radius }
+    public set radius(value: number) { this._radius = value; this.draw(); }
 
     constructor(canvas: HTMLCanvasElement, radius: number) {
         
         super("CircleTEX", canvas)
 
-        this.radius = radius
+        this._radius = radius
+
+        this.uniformFloats = function _(): Record<string, number> {
+            let uniforms: Record<string, number> = {};
+            uniforms["u_radius"] = this.radius;
+            return uniforms
+        }
+        super.draw()
 
     }
 
@@ -246,13 +311,22 @@ class CircleTEX extends TEXContent {
 
 class PolygonTEX extends TEXContent {
 
-    radius: number
+    _radius: number
+    public get radius(): number { return this._radius }
+    public set radius(value: number) { this._radius = value; this.draw(); }
 
     constructor(canvas: HTMLCanvasElement, radius: number) {
         
         super("PolygonTEX", canvas)
 
-        this.radius = radius
+        this._radius = radius
+
+        this.uniformFloats = function _(): Record<string, number> {
+            let uniforms: Record<string, number> = {};
+            uniforms["u_radius"] = this.radius;
+            return uniforms
+        }
+        super.draw()
 
     }
 

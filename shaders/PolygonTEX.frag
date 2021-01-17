@@ -2,7 +2,8 @@
 precision mediump float;
 #endif
 
-const int MAX_COUNT = 32;
+const int MAX_VERTEX_COUNT = 32;
+const int ANTI_ALIASING_COUNT = 4;
 
 uniform ivec2 u_resolution;
 // uniform float u_radius;
@@ -13,22 +14,7 @@ uniform ivec2 u_resolution;
 // uniform vec4 u_backgroundColor;
 // uniform float u_cornerRadius;
 // uniform bool u_premultiply;
-
-// float s;
-// float x;
-// float y;
-// float r;
-// float i;
-// float ar;
-// float ag;
-// float ab;
-// float aa;
-// float br;
-// float bg;
-// float bb;
-// float ba;
-// float rad;
-// float premultiply;
+// uniform bool u_antiAliasing;
 
 vec2 lerp2d(float fraction, vec2 from, vec2 to) {
     return from * (1.0 - fraction) + to * fraction;
@@ -99,17 +85,17 @@ bool pointInTriangle(vec2 pt, vec2 v1, vec2 v2, vec2 v3) {
     return (b1 == b2) && (b2 == b3);
 }
 
-vec4 roundedPolygon(vec2 uv, vec2 space, float aspect, int count, vec2 offset, float radius, float rotation, float cornerRadius) {
+bool roundedPolygon(vec2 uv, vec2 space, float aspect, int count, vec2 offset, float radius, float rotation, float cornerRadius) {
     
     float pi = 3.14159265359;
     
     vec2 location = vec2(offset.x / aspect, offset.y);
     
     if (radius <= 0.0) {
-        return vec4(0.0);
+        return false;
     }
     
-    for (int i = 0; i < MAX_COUNT; i++) {
+    for (int i = 0; i < MAX_VERTEX_COUNT; i++) {
         if (i >= count) { break; }
 
         float fia = float(i) / float(count);
@@ -132,7 +118,7 @@ vec4 roundedPolygon(vec2 uv, vec2 space, float aspect, int count, vec2 offset, f
             bool pit = pointInTriangle(uv, p1, p2, p3);
             
             if (pit) {
-                return vec4(1.0);
+                return true;
             }
             
         } else {
@@ -165,26 +151,15 @@ vec4 roundedPolygon(vec2 uv, vec2 space, float aspect, int count, vec2 offset, f
             bool pit1 = pointInTriangle(uv, cc1p, cc1c2, cc2c1);
             bool pit2 = pointInTriangle(uv, cc2p, cc1p, cc2c1);
             
-            // if (p12d < r || p13d < r || pit || pit1 || pit2) {
-            //     return 1.0;
-            // }
-            if (p12d < r) {
-                return vec4(1.0, 0.0, 0.0, 1.0);
-            } else if (p13d < r) {
-                return vec4(1.0, 1.0, 0.0, 1.0);
-            } else if (pit) {
-                return vec4(0.0, 1.0, 0.0, 1.0);
-            } else if (pit1) {
-                return vec4(0.0, 1.0, 1.0, 1.0);
-            } else if (pit2) {
-                return vec4(0.0, 0.0, 1.0, 1.0);
+            if (p12d < r || p13d < r || pit || pit1 || pit2) {
+                return true;
             }
-            
+
         }
 
     }
     
-    return vec4(0.0);
+    return false;
         
 }
 
@@ -201,17 +176,28 @@ void main() {
     int u_vertexCount = 3;
     vec4 u_foregroundColor = vec4(1.0, 1.0, 1.0, 1.0);
     vec4 u_backgroundColor = vec4(0.0, 0.0, 0.0, 1.0);
-    float u_cornerRadius = 0.0;
+    float u_cornerRadius = 0.05;
     bool u_premultiply = false;
+    bool u_antiAliasing = true;
 
-    vec4 light = roundedPolygon(uv, space, aspect, u_vertexCount, u_position, u_radius, u_rotation, u_cornerRadius);
-    // float light = 0.0;
-    // if (distance < (u_radius - onePixel / 2.0)) {
-    //     light = 1.0;
-    // } else if (distance < (u_radius + onePixel / 2.0)) {
-    //     light = 1.0 - (distance - (u_radius - onePixel / 2.0)) / onePixel;
-    // }
-    vec4 color = light; //vec4(vec3(light), 1.0);
+    vec4 color = u_backgroundColor;
+    if (!u_antiAliasing) {
+        bool inPolygon = roundedPolygon(uv, space, aspect, u_vertexCount, u_position, u_radius, u_rotation, u_cornerRadius);
+        if (inPolygon) {
+            color = u_foregroundColor;
+        }
+    } else {
+        float aaLight = 0.0;
+        for (int i = 0; i < ANTI_ALIASING_COUNT; i++) {
+            float fraction = float(i) / float(ANTI_ALIASING_COUNT - 1);
+            float aaOffset = onePixel * fraction;
+            bool inPolygon = roundedPolygon(uv, space, aspect, u_vertexCount, u_position, u_radius + aaOffset, u_rotation, u_cornerRadius + aaOffset / 2.0);
+            if (inPolygon) {
+                aaLight += 1.0 / float(ANTI_ALIASING_COUNT);
+            }
+        }
+        color = u_backgroundColor * (1.0 - aaLight) + u_foregroundColor * aaLight;
+    }
     if (u_premultiply) {
         color = color * color.a;
     }

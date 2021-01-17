@@ -130,24 +130,24 @@ class TEX {
 
         console.log("texture.js draw " + this.name)
         
-        {
-            const numComponents = 2;  // pull out 2 values per iteration
-            const type = this.gl.FLOAT;    // the data in the buffer is 32bit floats
-            const normalize = false;  // don't normalize
-            const stride = 0;         // how many bytes to get from one set of values to the next
-                                    // 0 = use type and numComponents above
-            const attribPosition = this.gl.getAttribLocation(this.shaderProgram, 'position');
-            const offset = 0;         // how many bytes inside the buffer to start from
-            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.quadBuffer);
-            this.gl.vertexAttribPointer(
-                attribPosition,
-                numComponents,
-                type,
-                normalize,
-                stride,
-                offset);
-            this.gl.enableVertexAttribArray(attribPosition);
-        }
+        // {
+        //     const numComponents = 2;  // pull out 2 values per iteration
+        //     const type = this.gl.FLOAT;    // the data in the buffer is 32bit floats
+        //     const normalize = false;  // don't normalize
+        //     const stride = 0;         // how many bytes to get from one set of values to the next
+        //                             // 0 = use type and numComponents above
+        //     const attribPosition = this.gl.getAttribLocation(this.shaderProgram, 'position');
+        //     const offset = 0;         // how many bytes inside the buffer to start from
+        //     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.quadBuffer);
+        //     this.gl.vertexAttribPointer(
+        //         attribPosition,
+        //         numComponents,
+        //         type,
+        //         normalize,
+        //         stride,
+        //         offset);
+        //     this.gl.enableVertexAttribArray(attribPosition);
+        // }
 
         this.gl.useProgram(this.shaderProgram);
 

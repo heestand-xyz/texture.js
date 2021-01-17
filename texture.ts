@@ -310,7 +310,11 @@ class PolygonTEX extends TEXContent {
     _cornerRadius: number = 0.0
     public get cornerRadius(): number { return this._cornerRadius }
     public set cornerRadius(value: number) { this._cornerRadius = value; this.draw(); }
-
+    
+    // _antiAliased: boolean = true
+    // public get antiAliased(): boolean { return this._antiAliased }
+    // public set antiAliased(value: boolean) { this._antiAliased = value; this.draw(); }
+    
     constructor(canvas: HTMLCanvasElement) {
         
         super("PolygonTEX", canvas)
@@ -327,6 +331,11 @@ class PolygonTEX extends TEXContent {
             uniforms["u_vertexCount"] = this.vertexCount;
             return uniforms
         }
+        // this.uniformBools = function _(): Record<string, boolean> {
+        //     let uniforms: Record<string, boolean> = {};
+        //     uniforms["u_antiAliased"] = this.antiAliased;
+        //     return uniforms
+        // }
         super.draw()
 
     }

@@ -244,6 +244,9 @@ var CircleTEX = /** @class */ (function (_super) {
 }(TEXContent));
 var PolygonTEX = /** @class */ (function (_super) {
     __extends(PolygonTEX, _super);
+    // _antiAliased: boolean = true
+    // public get antiAliased(): boolean { return this._antiAliased }
+    // public set antiAliased(value: boolean) { this._antiAliased = value; this.draw(); }
     function PolygonTEX(canvas) {
         var _this = _super.call(this, "PolygonTEX", canvas) || this;
         _this._radius = 0.25;
@@ -262,6 +265,11 @@ var PolygonTEX = /** @class */ (function (_super) {
             uniforms["u_vertexCount"] = this.vertexCount;
             return uniforms;
         };
+        // this.uniformBools = function _(): Record<string, boolean> {
+        //     let uniforms: Record<string, boolean> = {};
+        //     uniforms["u_antiAliased"] = this.antiAliased;
+        //     return uniforms
+        // }
         _super.prototype.draw.call(_this);
         return _this;
     }

@@ -3,7 +3,7 @@ precision mediump float;
 #endif
 
 const int MAX_VERTEX_COUNT = 32;
-const int ANTI_ALIASING_COUNT = 4;
+const int ANTI_ALIASING_COUNT = 3;
 
 uniform ivec2 u_resolution;
 // uniform bool u_premultiply;
@@ -16,7 +16,7 @@ uniform float u_radius;
 uniform float u_rotation;
 uniform int u_vertexCount;
 uniform float u_cornerRadius;
-// uniform bool u_antiAliasing;
+// uniform bool u_antiAliased;
 
 vec2 lerp2d(float fraction, vec2 from, vec2 to) {
     return from * (1.0 - fraction) + to * fraction;
@@ -173,15 +173,14 @@ void main() {
     float onePixel = 1.0 / float(u_resolution.y);
 
     bool u_premultiply = false;
-    bool u_antiAliasing = true;
 
     vec4 color = u_backgroundColor;
-    if (!u_antiAliasing) {
-        bool inPolygon = roundedPolygon(uv, space, aspect, u_vertexCount, u_position, u_radius, u_rotation, u_cornerRadius);
-        if (inPolygon) {
-            color = u_color;
-        }
-    } else {
+    // if (!u_antiAliased) {
+    //     bool inPolygon = roundedPolygon(uv, space, aspect, u_vertexCount, u_position, u_radius, u_rotation, u_cornerRadius);
+    //     if (inPolygon) {
+    //         color = u_color;
+    //     }
+    // } else {
         float aaLight = 0.0;
         for (int i = 0; i < ANTI_ALIASING_COUNT; i++) {
             float fraction = float(i) / float(ANTI_ALIASING_COUNT - 1);
@@ -192,7 +191,7 @@ void main() {
             }
         }
         color = u_backgroundColor * (1.0 - aaLight) + u_color * aaLight;
-    }
+    // }
     if (u_premultiply) {
         color = color * color.a;
     }

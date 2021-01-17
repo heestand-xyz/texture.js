@@ -25,6 +25,8 @@ resize()
 const circleTex = new CircleTEX(canvasOne)
 const polygonTex = new PolygonTEX(canvasTwo)
 
+// polygonTex.antiAliased = false
+
 circleTex.color = new Color(1.0, 0.5, 0.0, 1.0)
 polygonTex.color = new Color(0.0, 0.5, 1.0, 1.0)
 

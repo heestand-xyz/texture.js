@@ -1,0 +1,27 @@
+<html>
+    <head>
+        <title>texture.js - PolygonTEX</title>
+    </head>
+    <body>
+
+        <canvas id="texture"></canvas>
+        <br><br>
+        <img id="image" width=100>
+
+        <script src="https://heestand-xyz.github.io/texture.js/texture.js"></script>
+        <script>
+
+            const canvas = document.getElementById("texture");
+            const img = document.getElementById("image");
+
+            const polygonTex = new PolygonTEX(canvas);
+            polygonTex.radius = 1.0 / 3.0
+            polygonTex.cornerRadius = 0.05
+
+            const url = canvas.toDataURL("image/jpeg", 0.8)
+            img.src = url
+            
+        </script>
+        
+    </body>
+</html>

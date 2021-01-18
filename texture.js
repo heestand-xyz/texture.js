@@ -12,7 +12,7 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-var onlineShaderFolderURL = "https://raw.githubusercontent.com/heestand-xyz/texture.js/main/shaders/";
+var onlineShaderFolderURL = "https://heestand-xyz.github.io/texture.js/shaders/";
 var Color = /** @class */ (function () {
     function Color(red, green, blue, alpha) {
         this.red = red;

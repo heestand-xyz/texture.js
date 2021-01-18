@@ -1,4 +1,4 @@
-const onlineShaderFolderURL: string = "https://raw.githubusercontent.com/heestand-xyz/texture.js/main/shaders/"
+const onlineShaderFolderURL: string = "https://heestand-xyz.github.io/texture.js/shaders/"
 
 class Color {
     red: number

@@ -3,11 +3,23 @@
         <title>texture.js - CircleTEX</title>
     </head>
     <body>
+
         <canvas id="texture"></canvas>
+        <br><br>
+        <img id="image" width=100>
+
         <script src="https://heestand-xyz.github.io/texture.js/texture.js"></script>
         <script>
-            var canvas = document.getElementById("texture");
-            var circleTex = new CircleTEX(canvas);
+
+            const canvas = document.getElementById("texture");
+            const img = document.getElementById("image");
+
+            const circleTex = new CircleTEX(canvas);
+
+            const url = canvas.toDataURL("image/jpeg", 0.8)
+            img.src = url
+            
         </script>
+        
     </body>
 </html>

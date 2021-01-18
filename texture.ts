@@ -240,24 +240,8 @@ class TEX {
         // Clear the canvas before we start drawing on it.
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     }
-
+    
     // Push Pixels
-
-    // pushPixels(fromTex: TEX, index?: number) {
-    //     const url: string = fromTex.canvas.toDataURL();
-    //     const image: TexImageSource = new Image(fromTex.resolution.width, fromTex.resolution.height)
-    //     image.src = url
-    //     image.onload = () => {
-    //         var inputIndex: number = 0
-    //         if (index != null) {
-    //             inputIndex = index!
-    //         } else {
-    //             inputIndex = this.indexOfInput(fromTex)
-    //         }
-    //         this.createTexture(image, inputIndex!)
-    //         this.render()
-    //     }
-    // }
 
     pixelPushIndex: number = 0
 

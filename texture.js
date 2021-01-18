@@ -49,21 +49,6 @@ var TEX = /** @class */ (function () {
         this.uniformResolutions = function _() { return {}; };
         this.uniformColors = function _() { return {}; };
         // Push Pixels
-        // pushPixels(fromTex: TEX, index?: number) {
-        //     const url: string = fromTex.canvas.toDataURL();
-        //     const image: TexImageSource = new Image(fromTex.resolution.width, fromTex.resolution.height)
-        //     image.src = url
-        //     image.onload = () => {
-        //         var inputIndex: number = 0
-        //         if (index != null) {
-        //             inputIndex = index!
-        //         } else {
-        //             inputIndex = this.indexOfInput(fromTex)
-        //         }
-        //         this.createTexture(image, inputIndex!)
-        //         this.render()
-        //     }
-        // }
         this.pixelPushIndex = 0;
         this.shaderName = shaderName;
         this.canvas = canvas;

@@ -21,6 +21,8 @@ var circleTex = new CircleTEX(canvas)
 
 ```js
 var polygonTex = new PolygonTEX(canvas)
+polygonTex.radius = 1.0 / 3.0
+polygonTex.cornerRadius = 0.05
 ```
 
 ![PolygonTEX](https://heestand-xyz.github.io/texture.js/renders/PolygonTEX.jpg)

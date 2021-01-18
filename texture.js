@@ -12,6 +12,7 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
+var onlineShaderFolderURL = "https://raw.githubusercontent.com/heestand-xyz/texture.js/main/shaders/";
 var Color = /** @class */ (function () {
     function Color(red, green, blue, alpha) {
         this.red = red;
@@ -47,6 +48,23 @@ var TEX = /** @class */ (function () {
         this.uniformPositions = function _() { return {}; };
         this.uniformResolutions = function _() { return {}; };
         this.uniformColors = function _() { return {}; };
+        // Push Pixels
+        // pushPixels(fromTex: TEX, index?: number) {
+        //     const url: string = fromTex.canvas.toDataURL();
+        //     const image: TexImageSource = new Image(fromTex.resolution.width, fromTex.resolution.height)
+        //     image.src = url
+        //     image.onload = () => {
+        //         var inputIndex: number = 0
+        //         if (index != null) {
+        //             inputIndex = index!
+        //         } else {
+        //             inputIndex = this.indexOfInput(fromTex)
+        //         }
+        //         this.createTexture(image, inputIndex!)
+        //         this.render()
+        //     }
+        // }
+        this.pixelPushIndex = 0;
         this.shaderName = shaderName;
         this.canvas = canvas;
         this.gl = this.canvas.getContext("webgl");
@@ -58,7 +76,13 @@ var TEX = /** @class */ (function () {
     }
     // Setup
     TEX.prototype.load = function (shaderName, loaded) {
-        var path = TEX.shaderFolder + shaderName + ".glsl";
+        var path = "";
+        if (TEX.shaderFolder != null) {
+            path = TEX.shaderFolder + shaderName + ".glsl";
+        }
+        else {
+            path = onlineShaderFolderURL + shaderName + ".glsl";
+        }
         var rawFile = new XMLHttpRequest();
         rawFile.open("GET", path, false);
         rawFile.onreadystatechange = function () {
@@ -174,27 +198,19 @@ var TEX = /** @class */ (function () {
         // Clear the canvas before we start drawing on it.
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     };
-    // Push Pixels
-    // pushPixels(fromTex: TEX, index?: number) {
-    //     const url: string = fromTex.canvas.toDataURL();
-    //     const image: TexImageSource = new Image(fromTex.resolution.width, fromTex.resolution.height)
-    //     image.src = url
-    //     image.onload = () => {
-    //         var inputIndex: number = 0
-    //         if (index != null) {
-    //             inputIndex = index!
-    //         } else {
-    //             inputIndex = this.indexOfInput(fromTex)
-    //         }
-    //         this.createTexture(image, inputIndex!)
-    //         this.render()
-    //     }
-    // }
     TEX.prototype.pushPixels = function (fromTex, toTex, index) {
+        var currentPixelPushIndex = toTex.pixelPushIndex + 1;
+        toTex.pixelPushIndex = currentPixelPushIndex;
         fromTex.canvas.toBlob(function (blob) {
+            if (currentPixelPushIndex != toTex.pixelPushIndex) {
+                return;
+            }
             var image = new Image(fromTex.resolution.width, fromTex.resolution.height);
             image.src = URL.createObjectURL(blob);
             image.onload = function () {
+                if (currentPixelPushIndex != toTex.pixelPushIndex) {
+                    return;
+                }
                 var inputIndex = 0;
                 if (index != null) {
                     inputIndex = index;
@@ -310,7 +326,6 @@ var TEX = /** @class */ (function () {
             this.gl.drawArrays(this.gl.TRIANGLE_STRIP, offset, vertexCount);
         }
     };
-    TEX.shaderFolder = "shaders/";
     return TEX;
 }());
 // TEX Resource

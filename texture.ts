@@ -1,3 +1,5 @@
+const onlineShaderFolderURL: string = "https://raw.githubusercontent.com/heestand-xyz/texture.js/main/shaders/"
+
 class Color {
     red: number
     green: number
@@ -33,7 +35,7 @@ class Resolution {
 
 class TEX {
     
-    static shaderFolder =  "shaders/"
+    static shaderFolder?: string
 
     shaderName: string
     
@@ -78,7 +80,12 @@ class TEX {
     // Setup
 
     load(shaderName: string, loaded: (_: string) => (void)) {
-        let path: string = TEX.shaderFolder + shaderName + ".glsl"
+        var path: string = "";
+        if (TEX.shaderFolder != null) {
+            path = TEX.shaderFolder! + shaderName + ".glsl"
+        } else {
+            path = onlineShaderFolderURL + shaderName + ".glsl"
+        }
         var rawFile = new XMLHttpRequest();
         rawFile.open("GET", path, false);
         rawFile.onreadystatechange = function () {
@@ -252,11 +259,17 @@ class TEX {
     //     }
     // }
 
+    pixelPushIndex: number = 0
+
     pushPixels(fromTex: TEX, toTex: TEX, index?: number) {
+        const currentPixelPushIndex = toTex.pixelPushIndex + 1
+        toTex.pixelPushIndex = currentPixelPushIndex
         fromTex.canvas.toBlob(function(blob) {
+            if (currentPixelPushIndex != toTex.pixelPushIndex) { return; }
             const image: TexImageSource = new Image(fromTex.resolution.width, fromTex.resolution.height)
             image.src = URL.createObjectURL(blob)
             image.onload = () => {
+                if (currentPixelPushIndex != toTex.pixelPushIndex) { return; }
                 var inputIndex: number = 0
                 if (index != null) {
                     inputIndex = index!

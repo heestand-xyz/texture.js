@@ -1,6 +1,6 @@
 console.log("texture.js test")
 
-TEX.shaderFolder = "../shaders/"
+// TEX.shaderFolder = "../shaders/"
 
 
 var canvasOne = document.getElementById("canvasOne");
@@ -41,6 +41,7 @@ blendTex.inputB = polygonTex
 
 const colorShiftTex = new ColorShiftTEX(canvasFour)
 colorShiftTex.input = blendTex
+colorShiftTex.saturation = 2.0
 
 // Mouse Over
 
@@ -56,8 +57,8 @@ canvasTwo.addEventListener('mousemove', e => {
     // console.log("mouse move on two")
     const x = e.offsetX / canvasTwo.clientWidth;
     const y = e.offsetY / canvasTwo.clientHeight;
-    polygonTex.rotation = x
-    polygonTex.cornerRadius = y * 0.075
+    polygonTex.rotation = (x - 0.5) * 0.25
+    polygonTex.cornerRadius = y * 0.1
 })
 
 canvasFour.addEventListener('mousemove', e => {

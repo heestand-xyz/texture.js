@@ -48,11 +48,14 @@ var TEX = /** @class */ (function () {
         this.shaderName = shaderName;
         this.canvas = canvas;
         this.gl = this.canvas.getContext("webgl");
-        this.loadShader(shaderName, function (source) {
+        this.layout();
+        this.load(shaderName, function (source) {
             _this.setup(source);
+            _this.render();
         });
     }
-    TEX.prototype.loadShader = function (shaderName, loaded) {
+    // Setup
+    TEX.prototype.load = function (shaderName, loaded) {
         var path = TEX.shaderFolder + shaderName + ".frag";
         var rawFile = new XMLHttpRequest();
         rawFile.open("GET", path, false);
@@ -71,8 +74,8 @@ var TEX = /** @class */ (function () {
         var fragmentShader = this.createShader(this.gl, fragmentShaderSource, this.gl.FRAGMENT_SHADER);
         this.shaderProgram = this.createProgram(this.gl, vertexShader, fragmentShader);
         this.quadBuffer = this.createQuadBuffer(this.gl);
-        this.draw();
     };
+    // Create
     TEX.prototype.createProgram = function (gl, vertexShader, fragmentShader) {
         var shaderProgram = gl.createProgram();
         gl.attachShader(shaderProgram, vertexShader);
@@ -117,6 +120,31 @@ var TEX = /** @class */ (function () {
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
         return positionBuffer;
     };
+    TEX.prototype.createTexture = function (gl, resolution, level) {
+        if (level === void 0) { level = 0; }
+        var targetTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+        {
+            var internalFormat = gl.RGBA;
+            var border = 0;
+            var format = gl.RGBA;
+            var type = gl.UNSIGNED_BYTE;
+            var data = null;
+            gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, resolution.width, resolution.height, border, format, type, data);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        }
+        return targetTexture;
+    };
+    TEX.prototype.createFramebuffer = function (gl, texture, level) {
+        if (level === void 0) { level = 0; }
+        var framebuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+        var attachmentPoint = gl.COLOR_ATTACHMENT0;
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, texture, level);
+        return framebuffer;
+    };
     TEX.prototype.clear = function (gl) {
         gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
         gl.clearDepth(1.0); // Clear everything
@@ -125,9 +153,27 @@ var TEX = /** @class */ (function () {
         // Clear the canvas before we start drawing on it.
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     };
-    TEX.prototype.draw = function () {
+    // Layout
+    TEX.prototype.layout = function () {
+        this.resolution = new Resolution(this.canvas.width, this.canvas.height);
+        if (this.texture != null) {
+            this.gl.deleteTexture(this.texture);
+        }
+        this.texture = this.createTexture(this.gl, this.resolution);
+        if (this.framebuffer != null) {
+            this.gl.deleteFramebuffer(this.framebuffer);
+        }
+        this.framebuffer = this.createFramebuffer(this.gl, this.texture);
+    };
+    // Render
+    TEX.prototype.render = function () {
+        this.renderTo(this.framebuffer);
+        this.renderTo(null);
+    };
+    TEX.prototype.renderTo = function (framebuffer) {
         this.clear(this.gl);
-        // console.log("texture.js draw " + this.name)
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, framebuffer);
+        // Prep
         {
             var numComponents = 2; // pull out 2 values per iteration
             var type = this.gl.FLOAT; // the data in the buffer is 32bit floats
@@ -143,7 +189,7 @@ var TEX = /** @class */ (function () {
         this.gl.useProgram(this.shaderProgram);
         // Resolution
         var resolutionLocation = this.gl.getUniformLocation(this.shaderProgram, "u_resolution");
-        this.gl.uniform2i(resolutionLocation, this.canvas.width, this.canvas.height);
+        this.gl.uniform2i(resolutionLocation, this.resolution.width, this.resolution.height);
         // Sampler
         var samplerLocation = this.gl.getUniformLocation(this.shaderProgram, 'u_sampler');
         this.gl.uniform1i(samplerLocation, 0);
@@ -189,6 +235,9 @@ var TEX = /** @class */ (function () {
             var location_6 = this.gl.getUniformLocation(this.shaderProgram, key);
             this.gl.uniform4f(location_6, value.red, value.green, value.blue, value.alpha);
         }
+        // Texture
+        // this.texture
+        // Final
         {
             var offset = 0;
             var vertexCount = 4;
@@ -202,9 +251,7 @@ var TEX = /** @class */ (function () {
 var TEXResource = /** @class */ (function (_super) {
     __extends(TEXResource, _super);
     function TEXResource(shaderName, canvas) {
-        var _this = _super.call(this, shaderName, canvas) || this;
-        _this.texture = null;
-        return _this;
+        return _super.call(this, shaderName, canvas) || this;
     }
     return TEXResource;
 }(TEX));
@@ -227,25 +274,14 @@ var ImageTEX = /** @class */ (function (_super) {
     }
     Object.defineProperty(ImageTEX.prototype, "imageResolution", {
         get: function () { return this._imageResolution; },
-        set: function (value) { this._imageResolution = value; this.draw(); },
+        set: function (value) { this._imageResolution = value; _super.prototype.render.call(this); },
         enumerable: false,
         configurable: true
     });
     ImageTEX.prototype.loadImage = function (image) {
         this.imageResolution = new Resolution(image.width, image.height);
-        this.texture = this.loadTexture(image);
-        //     const vsSource = `
-        //     attribute vec4 aVertexPosition;
-        //     attribute vec2 aTextureCoord;
-        //     uniform mat4 uModelViewMatrix;
-        //     uniform mat4 uProjectionMatrix;
-        //     varying highp vec2 vTextureCoord;
-        //     void main(void) {
-        //     gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-        //     vTextureCoord = aTextureCoord;
-        //     }
-        // `;
-        _super.prototype.draw.call(this);
+        this.resourceTexture = this.loadTexture(image);
+        _super.prototype.render.call(this);
     };
     ImageTEX.prototype.loadTexture = function (image) {
         var texture = this.gl.createTexture();
@@ -280,24 +316,24 @@ var TEXGenerator = /** @class */ (function (_super) {
             uniforms["u_color"] = this.color;
             return uniforms;
         };
-        _super.prototype.draw.call(_this);
+        _super.prototype.render.call(_this);
         return _this;
     }
     Object.defineProperty(TEXGenerator.prototype, "backgroundColor", {
         get: function () { return this._backgroundColor; },
-        set: function (value) { this._backgroundColor = value; this.draw(); },
+        set: function (value) { this._backgroundColor = value; _super.prototype.render.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(TEXGenerator.prototype, "color", {
         get: function () { return this._color; },
-        set: function (value) { this._color = value; this.draw(); },
+        set: function (value) { this._color = value; _super.prototype.render.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(TEXGenerator.prototype, "position", {
         get: function () { return this._position; },
-        set: function (value) { this._position = value; this.draw(); },
+        set: function (value) { this._position = value; _super.prototype.render.call(this); },
         enumerable: false,
         configurable: true
     });
@@ -313,12 +349,12 @@ var CircleTEX = /** @class */ (function (_super) {
             uniforms["u_radius"] = this.radius;
             return uniforms;
         };
-        _super.prototype.draw.call(_this);
+        _super.prototype.render.call(_this);
         return _this;
     }
     Object.defineProperty(CircleTEX.prototype, "radius", {
         get: function () { return this._radius; },
-        set: function (value) { this._radius = value; this.draw(); },
+        set: function (value) { this._radius = value; _super.prototype.render.call(this); },
         enumerable: false,
         configurable: true
     });
@@ -328,7 +364,7 @@ var PolygonTEX = /** @class */ (function (_super) {
     __extends(PolygonTEX, _super);
     // _antiAliased: boolean = true
     // public get antiAliased(): boolean { return this._antiAliased }
-    // public set antiAliased(value: boolean) { this._antiAliased = value; this.draw(); }
+    // public set antiAliased(value: boolean) { this._antiAliased = value; super.render(); }
     function PolygonTEX(canvas) {
         var _this = _super.call(this, "PolygonTEX", canvas) || this;
         _this._radius = 0.25;
@@ -352,30 +388,30 @@ var PolygonTEX = /** @class */ (function (_super) {
         //     uniforms["u_antiAliased"] = this.antiAliased;
         //     return uniforms
         // }
-        _super.prototype.draw.call(_this);
+        _super.prototype.render.call(_this);
         return _this;
     }
     Object.defineProperty(PolygonTEX.prototype, "radius", {
         get: function () { return this._radius; },
-        set: function (value) { this._radius = value; this.draw(); },
+        set: function (value) { this._radius = value; _super.prototype.render.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(PolygonTEX.prototype, "rotation", {
         get: function () { return this._rotation; },
-        set: function (value) { this._rotation = value; this.draw(); },
+        set: function (value) { this._rotation = value; _super.prototype.render.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(PolygonTEX.prototype, "vertexCount", {
         get: function () { return this._vertexCount; },
-        set: function (value) { this._vertexCount = value; this.draw(); },
+        set: function (value) { this._vertexCount = value; _super.prototype.render.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(PolygonTEX.prototype, "cornerRadius", {
         get: function () { return this._cornerRadius; },
-        set: function (value) { this._cornerRadius = value; this.draw(); },
+        set: function (value) { this._cornerRadius = value; _super.prototype.render.call(this); },
         enumerable: false,
         configurable: true
     });
@@ -387,6 +423,16 @@ var TEXEffect = /** @class */ (function (_super) {
     function TEXEffect(shaderName, canvas) {
         return _super.call(this, shaderName, canvas) || this;
     }
+    Object.defineProperty(TEXEffect.prototype, "input", {
+        get: function () { return this._input; },
+        set: function (value) { this._input = value; this.connection(); },
+        enumerable: false,
+        configurable: true
+    });
+    TEXEffect.prototype.connection = function () {
+        console.log(this.shaderName + " Connect:", this.input);
+        _super.prototype.render.call(this);
+    };
     return TEXEffect;
 }(TEX));
 var ColorShiftTEX = /** @class */ (function (_super) {
@@ -401,18 +447,18 @@ var ColorShiftTEX = /** @class */ (function (_super) {
             uniforms["u_saturation"] = this.saturation;
             return uniforms;
         };
-        _super.prototype.draw.call(_this);
+        _super.prototype.render.call(_this);
         return _this;
     }
     Object.defineProperty(ColorShiftTEX.prototype, "hue", {
         get: function () { return this._hue; },
-        set: function (value) { this._hue = value; this.draw(); },
+        set: function (value) { this._hue = value; _super.prototype.render.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(ColorShiftTEX.prototype, "saturation", {
         get: function () { return this._saturation; },
-        set: function (value) { this._saturation = value; this.draw(); },
+        set: function (value) { this._saturation = value; _super.prototype.render.call(this); },
         enumerable: false,
         configurable: true
     });

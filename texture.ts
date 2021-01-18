@@ -36,12 +36,16 @@ class TEX {
     static shaderFolder =  "shaders/"
 
     shaderName: string
-
+    
     canvas: HTMLCanvasElement
     gl: WebGLRenderingContext
     
+    resolution!: Resolution
+    texture!: WebGLTexture
+    framebuffer!: WebGLFramebuffer
+
     shaderProgram!: WebGLProgram
-    quadBuffer!: WebGLBuffer
+    quadBuffer!: WebGLBuffer    
 
     uniformBools: () => Record<string, boolean> = function _(): Record<string, boolean> { return {} }
     uniformInts: () => Record<string, number> = function _(): Record<string, number> { return {} }
@@ -55,15 +59,20 @@ class TEX {
         this.shaderName = shaderName
 
         this.canvas = canvas
+        
         this.gl = this.canvas.getContext("webgl")!
 
-        this.loadShader(shaderName, (source: string) : void => {
+        this.layout()
+        this.load(shaderName, (source: string) : void => {
             this.setup(source)
+            this.render()    
         })
 
     }
 
-    loadShader(shaderName: string, loaded: (_: string) => (void)) {
+    // Setup
+
+    load(shaderName: string, loaded: (_: string) => (void)) {
         let path: string = TEX.shaderFolder + shaderName + ".frag"
         var rawFile = new XMLHttpRequest();
         rawFile.open("GET", path, false);
@@ -87,9 +96,9 @@ class TEX {
 
         this.quadBuffer = this.createQuadBuffer(this.gl)
 
-        this.draw()
-
     }
+
+    // Create
 
     createProgram(gl: WebGLRenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader) {
         
@@ -154,6 +163,35 @@ class TEX {
         return positionBuffer
     }
 
+    createTexture(gl: WebGLRenderingContext, resolution: Resolution, level: number = 0): WebGLTexture {
+        const targetTexture = gl.createTexture()!;
+        gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+        {
+            const internalFormat = gl.RGBA;
+            const border = 0;
+            const format = gl.RGBA;
+            const type = gl.UNSIGNED_BYTE;
+            const data = null;
+            gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, resolution.width, resolution.height, border, format, type, data);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        }
+        return targetTexture
+    }
+
+    createFramebuffer(gl: WebGLRenderingContext, texture: WebGLTexture, level: number = 0): WebGLFramebuffer {
+
+        const framebuffer: WebGLFramebuffer = gl.createFramebuffer()!;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+
+        const attachmentPoint = gl.COLOR_ATTACHMENT0;
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, texture, level);
+        
+        return framebuffer
+
+    }
+
     clear(gl: WebGLRenderingContext) {
         gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
         gl.clearDepth(1.0);                 // Clear everything
@@ -163,11 +201,34 @@ class TEX {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     }
 
-    draw() {
-      
+    // Layout
+
+    public layout() {
+        this.resolution = new Resolution(this.canvas.width, this.canvas.height)
+        if (this.texture != null) {
+            this.gl.deleteTexture(this.texture)
+        }
+        this.texture = this.createTexture(this.gl, this.resolution)
+        if (this.framebuffer != null) {
+            this.gl.deleteFramebuffer(this.framebuffer)
+        }
+        this.framebuffer = this.createFramebuffer(this.gl, this.texture)
+    }
+
+    // Render
+
+    public render() {
+        this.renderTo(this.framebuffer)
+        this.renderTo(null)
+    }
+    
+    renderTo(framebuffer: WebGLFramebuffer | null) {
+
         this.clear(this.gl)
 
-        // console.log("texture.js draw " + this.name)
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, framebuffer);
+
+        // Prep
         
         {
             const numComponents = 2;  // pull out 2 values per iteration
@@ -193,7 +254,7 @@ class TEX {
         // Resolution
 
         let resolutionLocation: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, "u_resolution")!
-        this.gl.uniform2i(resolutionLocation, this.canvas.width, this.canvas.height)
+        this.gl.uniform2i(resolutionLocation, this.resolution.width, this.resolution.height)
         
         // Sampler
         const samplerLocation = this.gl.getUniformLocation(this.shaderProgram, 'u_sampler');
@@ -247,6 +308,12 @@ class TEX {
             this.gl.uniform4f(location, value.red, value.green, value.blue, value.alpha);
         }
 
+        // Texture
+
+        // this.texture
+
+        // Final
+
         {
             const offset = 0;
             const vertexCount = 4;
@@ -261,7 +328,7 @@ class TEX {
 
 class TEXResource extends TEX {
     
-    texture: WebGLTexture | null = null
+    resourceTexture?: WebGLTexture
 
     constructor(shaderName: string, canvas: HTMLCanvasElement) {
         
@@ -277,7 +344,7 @@ class ImageTEX extends TEXResource {
 
     _imageResolution: Resolution | null = null
     public get imageResolution(): Resolution | null { return this._imageResolution }
-    public set imageResolution(value: Resolution | null) { this._imageResolution = value; this.draw(); }
+    public set imageResolution(value: Resolution | null) { this._imageResolution = value; super.render(); }
     
     constructor(canvas: HTMLCanvasElement, image: TexImageSource | null) {
         
@@ -299,22 +366,8 @@ class ImageTEX extends TEXResource {
 
     public loadImage(image: TexImageSource) {
         this.imageResolution = new Resolution(image!.width, image!.height)
-        this.texture = this.loadTexture(image)
-        //     const vsSource = `
-        //     attribute vec4 aVertexPosition;
-        //     attribute vec2 aTextureCoord;
-
-        //     uniform mat4 uModelViewMatrix;
-        //     uniform mat4 uProjectionMatrix;
-
-        //     varying highp vec2 vTextureCoord;
-
-        //     void main(void) {
-        //     gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-        //     vTextureCoord = aTextureCoord;
-        //     }
-        // `;
-        super.draw()
+        this.resourceTexture = this.loadTexture(image)
+        super.render()
     }
     
     loadTexture(image: TexImageSource): WebGLTexture {
@@ -343,15 +396,15 @@ class TEXGenerator extends TEX {
 
     _backgroundColor: Color = new Color(0.0, 0.0, 0.0, 1.0)
     public get backgroundColor(): Color { return this._backgroundColor }
-    public set backgroundColor(value: Color) { this._backgroundColor = value; this.draw(); }
+    public set backgroundColor(value: Color) { this._backgroundColor = value; super.render(); }
     
     _color: Color = new Color(1.0, 1.0, 1.0, 1.0)
     public get color(): Color { return this._color }
-    public set color(value: Color) { this._color = value; this.draw(); }
+    public set color(value: Color) { this._color = value; super.render(); }
 
     _position: Position = new Position(0.0, 0.0)
     public get position(): Position { return this._position }
-    public set position(value: Position) { this._position = value; this.draw(); }
+    public set position(value: Position) { this._position = value; super.render(); }
 
     constructor(shaderName: string, canvas: HTMLCanvasElement) {
         
@@ -368,7 +421,7 @@ class TEXGenerator extends TEX {
             uniforms["u_color"] = this.color;
             return uniforms
         }
-        super.draw()
+        super.render()
 
     }
 
@@ -378,7 +431,7 @@ class CircleTEX extends TEXGenerator {
 
     _radius: number = 0.25
     public get radius(): number { return this._radius }
-    public set radius(value: number) { this._radius = value; this.draw(); }
+    public set radius(value: number) { this._radius = value; super.render(); }
 
     constructor(canvas: HTMLCanvasElement) {
         
@@ -389,7 +442,7 @@ class CircleTEX extends TEXGenerator {
             uniforms["u_radius"] = this.radius;
             return uniforms
         }
-        super.draw()
+        super.render()
 
     }
 
@@ -399,23 +452,23 @@ class PolygonTEX extends TEXGenerator {
 
     _radius: number = 0.25
     public get radius(): number { return this._radius }
-    public set radius(value: number) { this._radius = value; this.draw(); }
+    public set radius(value: number) { this._radius = value; super.render(); }
 
     _rotation: number = 0.0
     public get rotation(): number { return this._rotation }
-    public set rotation(value: number) { this._rotation = value; this.draw(); }
+    public set rotation(value: number) { this._rotation = value; super.render(); }
 
     _vertexCount: number = 3
     public get vertexCount(): number { return this._vertexCount }
-    public set vertexCount(value: number) { this._vertexCount = value; this.draw(); }
+    public set vertexCount(value: number) { this._vertexCount = value; super.render(); }
 
     _cornerRadius: number = 0.0
     public get cornerRadius(): number { return this._cornerRadius }
-    public set cornerRadius(value: number) { this._cornerRadius = value; this.draw(); }
+    public set cornerRadius(value: number) { this._cornerRadius = value; super.render(); }
     
     // _antiAliased: boolean = true
     // public get antiAliased(): boolean { return this._antiAliased }
-    // public set antiAliased(value: boolean) { this._antiAliased = value; this.draw(); }
+    // public set antiAliased(value: boolean) { this._antiAliased = value; super.render(); }
     
     constructor(canvas: HTMLCanvasElement) {
         
@@ -438,7 +491,7 @@ class PolygonTEX extends TEXGenerator {
         //     uniforms["u_antiAliased"] = this.antiAliased;
         //     return uniforms
         // }
-        super.draw()
+        super.render()
 
     }
 
@@ -448,7 +501,9 @@ class PolygonTEX extends TEXGenerator {
 
 class TEXEffect extends TEX {
 
-    input?: TEX
+    _input?: TEX
+    public get input(): TEX | undefined { return this._input }
+    public set input(value: TEX | undefined) { this._input = value; this.connection(); }
 
     constructor(shaderName: string, canvas: HTMLCanvasElement) {
         
@@ -456,17 +511,40 @@ class TEXEffect extends TEX {
         
     }
 
+    connection() {
+        console.log(this.shaderName + " Connect:", this.input)
+        super.render()
+    }
+    
+    // loadTexture(): WebGLTexture {
+
+    //     const texture = this.gl.createTexture()!;
+    //     this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+
+    //     const level = 0;
+    //     const format = this.gl.RGBA;
+    //     const type = this.gl.UNSIGNED_BYTE;
+    //     this.gl.texImage2D(this.gl.TEXTURE_2D, level, format, format, type, image);
+
+    //     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+    //     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+    //     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+
+    //     return texture
+
+    // }
+
 }
 
 class ColorShiftTEX extends TEXEffect {
 
     _hue: number = 0.0
     public get hue(): number { return this._hue }
-    public set hue(value: number) { this._hue = value; this.draw(); }
+    public set hue(value: number) { this._hue = value; super.render(); }
 
     _saturation: number = 1.0
     public get saturation(): number { return this._saturation }
-    public set saturation(value: number) { this._saturation = value; this.draw(); }
+    public set saturation(value: number) { this._saturation = value; super.render(); }
 
     constructor(canvas: HTMLCanvasElement, input: TEX) {
 
@@ -478,7 +556,7 @@ class ColorShiftTEX extends TEXEffect {
             uniforms["u_saturation"] = this.saturation;
             return uniforms
         }
-        super.draw()
+        super.render()
 
     }
 

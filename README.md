@@ -9,7 +9,7 @@
 var canvas = document.getElementById("texture")
 ```
 
-## CircleTEX
+## Circle
 
 ```js
 var circleTex = new CircleTEX(canvas)
@@ -17,7 +17,7 @@ var circleTex = new CircleTEX(canvas)
 
 ![CircleTEX](https://heestand-xyz.github.io/texture.js/renders/CircleTEX.jpg)
 
-## PolygonTEX
+## Polygon
 
 ```js
 var polygonTex = new PolygonTEX(canvas)

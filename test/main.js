@@ -1,13 +1,11 @@
 console.log("texture.js test")
 
-// TEX.shaderFolder = "../shaders/"
-
+TEX.shaderFolder = "../shaders/"
 
 var canvasOne = document.getElementById("canvasOne");
 var canvasTwo = document.getElementById("canvasTwo");
 var canvasThree = document.getElementById("canvasThree");
 var canvasFour = document.getElementById("canvasFour");
-
 
 function resize() {
     canvasOne.width = canvasOne.clientWidth
@@ -21,8 +19,9 @@ function resize() {
 }
 resize()
 
-const circleTex = new CircleTEX(canvasOne)
-circleTex.color = new Color(1.0, 0.5, 0.0, 1.0)
+
+const noiseTex = new NoiseTEX(canvasOne)
+// noiseTex.octaves = 10
 
 const polygonTex = new PolygonTEX(canvasTwo)
 polygonTex.color = new Color(0.0, 0.5, 1.0, 1.0)
@@ -35,26 +34,24 @@ polygonTex.radius = 1.0 / 3.0
 //     imageTex.loadImage(image)
 // }
 
-const blendTex = new BlendTEX(canvasThree, circleTex, polygonTex)
-blendTex.inputA = circleTex
+const blendTex = new BlendTEX(canvasThree)
+blendTex.inputA = noiseTex
 blendTex.inputB = polygonTex
 
 const colorShiftTex = new ColorShiftTEX(canvasFour)
 colorShiftTex.input = blendTex
 colorShiftTex.saturation = 2.0
 
+
 // Mouse Over
 
 canvasOne.addEventListener('mousemove', e => {
-    // console.log("mouse move on one")
-    const x = (e.offsetX - canvasOne.clientWidth / 2.0) / canvasOne.clientHeight;
-    const y = e.offsetY / canvasOne.clientHeight - 0.5;
-    const dist = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2))
-    circleTex.radius = dist / 2 
+    const x = e.offsetX / canvasTwo.clientWidth;
+    const y = e.offsetY / canvasTwo.clientHeight;
+    noiseTex.zPosition = x
 })
 
 canvasTwo.addEventListener('mousemove', e => {
-    // console.log("mouse move on two")
     const x = e.offsetX / canvasTwo.clientWidth;
     const y = e.offsetY / canvasTwo.clientHeight;
     polygonTex.rotation = (x - 0.5) * 0.25
@@ -62,7 +59,6 @@ canvasTwo.addEventListener('mousemove', e => {
 })
 
 canvasFour.addEventListener('mousemove', e => {
-    // console.log("mouse move on four")
     const x = e.offsetX / canvasFour.clientWidth;
     const y = e.offsetY / canvasFour.clientHeight;
     colorShiftTex.hue = x

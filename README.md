@@ -13,9 +13,10 @@ var canvas = document.getElementById("texture")
 
 ```js
 var circleTex = new CircleTEX(canvas)
+polygonTex.radius = 0.25
 ```
 
-![CircleTEX](https://heestand-xyz.github.io/texture.js/renders/CircleTEX.jpg)
+![CircleTEX](https://heestand-xyz.github.io/texture.js/renders/CircleTEX.jpeg)
 
 ## Polygon
 
@@ -25,4 +26,15 @@ polygonTex.radius = 1.0 / 3.0
 polygonTex.cornerRadius = 0.05
 ```
 
-![PolygonTEX](https://heestand-xyz.github.io/texture.js/renders/PolygonTEX.jpg)
+![PolygonTEX](https://heestand-xyz.github.io/texture.js/renders/PolygonTEX.jpeg)
+
+## Noise
+
+```js
+var noiseTex = new NoiseTEX(canvas);
+noiseTex.octaves = 2
+noiseTex.scale = 1.5
+```
+
+![NoiseTEX](https://heestand-xyz.github.io/texture.js/renders/NoiseTEX.jpeg)
+

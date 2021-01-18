@@ -39,6 +39,7 @@ var Resolution = /** @class */ (function () {
 var TEX = /** @class */ (function () {
     function TEX(shaderName, canvas) {
         var _this = this;
+        this.inputs = [];
         this.outputs = [];
         this.uniformBools = function _() { return {}; };
         this.uniformInts = function _() { return {}; };
@@ -144,8 +145,16 @@ var TEX = /** @class */ (function () {
     //     gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, texture, level);
     //     return framebuffer
     // }
-    TEX.prototype.createTextureFrom = function (image) {
+    TEX.prototype.createTextureFrom = function (image, index) {
+        if (index === void 0) { index = 0; }
+        console.log(this.shaderName + " - " + "createTextureFrom image index:", index);
         var texture = this.gl.createTexture();
+        if (index == 0) {
+            this.gl.activeTexture(this.gl.TEXTURE0);
+        }
+        else if (index == 1) {
+            this.gl.activeTexture(this.gl.TEXTURE1);
+        }
         this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
         var level = 0;
         var format = this.gl.RGBA;
@@ -154,6 +163,7 @@ var TEX = /** @class */ (function () {
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
         return texture;
     };
     TEX.prototype.clear = function (gl) {
@@ -165,15 +175,31 @@ var TEX = /** @class */ (function () {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     };
     // Push Pixels
-    TEX.prototype.pushPixels = function (fromTex) {
+    TEX.prototype.pushPixels = function (fromTex, index) {
         var _this = this;
         var url = fromTex.canvas.toDataURL();
         var image = new Image(fromTex.resolution.width, fromTex.resolution.height);
         image.src = url;
         image.onload = function () {
-            _this.createTextureFrom(image);
+            var inputIndex = 0;
+            if (index != null) {
+                inputIndex = index;
+            }
+            else {
+                inputIndex = _this.indexOfInput(fromTex);
+            }
+            _this.createTextureFrom(image, inputIndex);
             _this.render();
         };
+    };
+    TEX.prototype.indexOfInput = function (tex) {
+        for (var index = 0; index < this.inputs.length; index++) {
+            var input = this.inputs[index];
+            if (tex == input) {
+                return index;
+            }
+        }
+        return 0;
     };
     // Layout
     TEX.prototype.layout = function () {
@@ -213,12 +239,12 @@ var TEX = /** @class */ (function () {
             this.gl.enableVertexAttribArray(attribPosition);
         }
         this.gl.useProgram(this.shaderProgram);
+        if (this.subRender != undefined) {
+            this.subRender();
+        }
         // Resolution
         var resolutionLocation = this.gl.getUniformLocation(this.shaderProgram, "u_resolution");
         this.gl.uniform2i(resolutionLocation, this.resolution.width, this.resolution.height);
-        // Sampler
-        var samplerLocation = this.gl.getUniformLocation(this.shaderProgram, 'u_sampler');
-        this.gl.uniform1i(samplerLocation, 0);
         // Bools
         var uniformBools = this.uniformBools();
         for (var key in uniformBools) {
@@ -261,8 +287,6 @@ var TEX = /** @class */ (function () {
             var location_6 = this.gl.getUniformLocation(this.shaderProgram, key);
             this.gl.uniform4f(location_6, value.red, value.green, value.blue, value.alpha);
         }
-        // Texture
-        // this.texture
         // Final
         {
             var offset = 0;
@@ -277,7 +301,13 @@ var TEX = /** @class */ (function () {
 var TEXResource = /** @class */ (function (_super) {
     __extends(TEXResource, _super);
     function TEXResource(shaderName, canvas) {
-        return _super.call(this, shaderName, canvas) || this;
+        var _this = _super.call(this, shaderName, canvas) || this;
+        _this.subRender = function _() {
+            // Sampler
+            var samplerLocation = this.gl.getUniformLocation(this.shaderProgram, 'u_sampler');
+            this.gl.uniform1i(samplerLocation, 0);
+        };
+        return _this;
     }
     return TEXResource;
 }(TEX));
@@ -435,7 +465,13 @@ var PolygonTEX = /** @class */ (function (_super) {
 var TEXEffect = /** @class */ (function (_super) {
     __extends(TEXEffect, _super);
     function TEXEffect(shaderName, canvas) {
-        return _super.call(this, shaderName, canvas) || this;
+        var _this = _super.call(this, shaderName, canvas) || this;
+        _this.subRender = function _() {
+            // Sampler
+            var samplerLocation = this.gl.getUniformLocation(this.shaderProgram, 'u_sampler');
+            this.gl.uniform1i(samplerLocation, 0);
+        };
+        return _this;
     }
     Object.defineProperty(TEXEffect.prototype, "input", {
         get: function () { return this._input; },
@@ -453,6 +489,7 @@ var TEXEffect = /** @class */ (function (_super) {
     });
     TEXEffect.prototype.connect = function (tex) {
         tex.outputs.push(this);
+        this.inputs = [tex];
         _super.prototype.pushPixels.call(this, tex);
     };
     TEXEffect.prototype.disconnect = function (tex) {
@@ -463,6 +500,7 @@ var TEXEffect = /** @class */ (function (_super) {
                 break;
             }
         }
+        this.inputs = [];
         _super.prototype.render.call(this);
     };
     return TEXEffect;
@@ -512,8 +550,70 @@ var ColorShiftTEX = /** @class */ (function (_super) {
 var TEXMergeEffect = /** @class */ (function (_super) {
     __extends(TEXMergeEffect, _super);
     function TEXMergeEffect(shaderName, canvas) {
-        return _super.call(this, shaderName, canvas) || this;
+        var _this = _super.call(this, shaderName, canvas) || this;
+        _this.subRender = function _() {
+            // Sampler
+            var samplerLocationA = this.gl.getUniformLocation(this.shaderProgram, 'u_samplerA');
+            var samplerLocationB = this.gl.getUniformLocation(this.shaderProgram, 'u_samplerB');
+            this.gl.uniform1i(samplerLocationA, 0);
+            this.gl.uniform1i(samplerLocationB, 1);
+        };
+        return _this;
     }
+    Object.defineProperty(TEXMergeEffect.prototype, "inputA", {
+        get: function () { return this._inputA; },
+        set: function (tex) {
+            if (this._inputA != undefined) {
+                this.disconnect(this.inputA, 0);
+            }
+            if (tex != undefined) {
+                this.connect(tex, 0);
+            }
+            this._inputA = tex;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(TEXMergeEffect.prototype, "inputB", {
+        get: function () { return this._inputB; },
+        set: function (tex) {
+            if (this._inputB != undefined) {
+                this.disconnect(this.inputB, 1);
+            }
+            if (tex != undefined) {
+                this.connect(tex, 1);
+            }
+            this._inputB = tex;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    TEXMergeEffect.prototype.connect = function (tex, index) {
+        tex.outputs.push(this);
+        _super.prototype.pushPixels.call(this, tex, index);
+        if (this.inputs.length > 0) {
+            this.inputs.splice(index, 0, tex);
+        }
+        else {
+            this.inputs.push(tex);
+        }
+    };
+    TEXMergeEffect.prototype.disconnect = function (tex, index) {
+        for (var index_1 = 0; index_1 < tex.outputs.length; index_1++) {
+            var output = tex.outputs[index_1];
+            if (output == this) {
+                tex.outputs.splice(index_1, 1);
+                break;
+            }
+        }
+        if (this.inputs.length > 1) {
+            this.inputs.splice(index, 1);
+        }
+        else {
+            this.inputs = [];
+        }
+        _super.prototype.render.call(this);
+    };
     return TEXMergeEffect;
 }(TEX));
 var BlendTEX = /** @class */ (function (_super) {

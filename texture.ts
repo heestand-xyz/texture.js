@@ -47,6 +47,7 @@ class TEX {
     shaderProgram!: WebGLProgram
     quadBuffer!: WebGLBuffer
     
+    inputs: TEX[] = []
     outputs: TEX[] = []
 
     uniformBools: () => Record<string, boolean> = function _(): Record<string, boolean> { return {} }
@@ -55,6 +56,8 @@ class TEX {
     uniformPositions: () => Record<string, Position> = function _(): Record<string, Position> { return {} }
     uniformResolutions: () => Record<string, Resolution> = function _(): Record<string, Resolution> { return {} }
     uniformColors: () => Record<string, Color> = function _(): Record<string, Color> { return {} }
+
+    subRender?: () => void
 
     constructor(shaderName: string, canvas: HTMLCanvasElement) {
 
@@ -148,10 +151,10 @@ class TEX {
         // Now create an array of positions for the square.
       
         const positions = [
-          -1.0,  1.0,
-           1.0,  1.0,
-          -1.0, -1.0,
-           1.0, -1.0,
+            -1.0, 1.0,
+            1.0, 1.0,
+            -1.0, -1.0,
+            1.0, -1.0,
         ];
       
         // Now pass the list of positions into WebGL to build the
@@ -194,9 +197,18 @@ class TEX {
 
     // }
     
-    createTextureFrom(image: TexImageSource): WebGLTexture {
+    createTextureFrom(image: TexImageSource, index: number = 0): WebGLTexture {
+
+        console.log(this.shaderName + " - " + "createTextureFrom image index:", index)
 
         const texture = this.gl.createTexture()!;
+
+        if (index == 0) {
+            this.gl.activeTexture(this.gl.TEXTURE0)
+        } else if (index == 1) {
+            this.gl.activeTexture(this.gl.TEXTURE1)
+        }
+
         this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 
         const level = 0;
@@ -207,6 +219,7 @@ class TEX {
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
 
         return texture
 
@@ -223,14 +236,30 @@ class TEX {
 
     // Push Pixels
 
-    pushPixels(fromTex: TEX) {
+    pushPixels(fromTex: TEX, index?: number) {
         const url: string = fromTex.canvas.toDataURL();
         const image: TexImageSource = new Image(fromTex.resolution.width, fromTex.resolution.height)
         image.src = url
         image.onload = () => {
-            this.createTextureFrom(image)
+            var inputIndex: number = 0
+            if (index != null) {
+                inputIndex = index!
+            } else {
+                inputIndex = this.indexOfInput(fromTex)
+            }
+            this.createTextureFrom(image, inputIndex!)
             this.render()
         }
+    }
+
+    indexOfInput(tex: TEX): number {
+        for (let index = 0; index < this.inputs.length; index++) {
+            const input = this.inputs[index];
+            if (tex == input) {
+                return index
+            }
+        }
+        return 0
     }
 
     // Layout
@@ -286,15 +315,15 @@ class TEX {
 
         this.gl.useProgram(this.shaderProgram);
 
+        if (this.subRender != undefined) {
+            this.subRender!();
+        }
+
         // Resolution
 
         let resolutionLocation: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, "u_resolution")!
         this.gl.uniform2i(resolutionLocation, this.resolution.width, this.resolution.height)
         
-        // Sampler
-        const samplerLocation = this.gl.getUniformLocation(this.shaderProgram, 'u_sampler');
-        this.gl.uniform1i(samplerLocation, 0);
-
         // Bools
         const uniformBools: Record<string, boolean> = this.uniformBools();
         for (var key in uniformBools) {
@@ -343,10 +372,6 @@ class TEX {
             this.gl.uniform4f(location, value.red, value.green, value.blue, value.alpha);
         }
 
-        // Texture
-
-        // this.texture
-
         // Final
 
         {
@@ -368,6 +393,12 @@ class TEXResource extends TEX {
     constructor(shaderName: string, canvas: HTMLCanvasElement) {
         
         super(shaderName, canvas)
+
+        this.subRender = function _() {
+            // Sampler
+            const samplerLocation = this.gl.getUniformLocation(this.shaderProgram, 'u_sampler');
+            this.gl.uniform1i(samplerLocation, 0);
+        }
 
     }
 
@@ -534,10 +565,19 @@ class TEXEffect extends TEX {
         
         super(shaderName, canvas)
         
+        this.subRender = function _() {
+
+            // Sampler
+            const samplerLocation = this.gl.getUniformLocation(this.shaderProgram, 'u_sampler');
+            this.gl.uniform1i(samplerLocation, 0);
+
+        }
+
     }
 
     connect(tex: TEX) {
         tex.outputs.push(this)
+        this.inputs = [tex]
         super.pushPixels(tex)
     }
 
@@ -549,6 +589,7 @@ class TEXEffect extends TEX {
                 break;
             }
         }
+        this.inputs = []
         super.render();
     }
 
@@ -593,13 +634,71 @@ class ColorShiftTEX extends TEXEffect {
 
 class TEXMergeEffect extends TEX {
 
-    inputA?: TEX
-    inputB?: TEX
+    _inputA?: TEX
+    public get inputA(): TEX | undefined { return this._inputA }
+    public set inputA(tex: TEX | undefined) {
+        if (this._inputA != undefined) {
+            this.disconnect(this.inputA!, 0)
+        }
+        if (tex != undefined) {
+            this.connect(tex, 0)
+        }
+        this._inputA = tex;
+    }
+
+    _inputB?: TEX
+    public get inputB(): TEX | undefined { return this._inputB }
+    public set inputB(tex: TEX | undefined) {
+        if (this._inputB != undefined) {
+            this.disconnect(this.inputB!, 1)
+        }
+        if (tex != undefined) {
+            this.connect(tex, 1)
+        }
+        this._inputB = tex;
+    }
+
 
     constructor(shaderName: string, canvas: HTMLCanvasElement) {
         
         super(shaderName, canvas)
         
+        this.subRender = function _() {
+
+            // Sampler
+            const samplerLocationA = this.gl.getUniformLocation(this.shaderProgram, 'u_samplerA');
+            const samplerLocationB = this.gl.getUniformLocation(this.shaderProgram, 'u_samplerB');
+            this.gl.uniform1i(samplerLocationA, 0);
+            this.gl.uniform1i(samplerLocationB, 1);
+
+        }
+
+    }
+
+    connect(tex: TEX, index: number) {
+        tex.outputs.push(this)
+        super.pushPixels(tex, index)
+        if (this.inputs.length > 0) {
+            this.inputs.splice(index, 0, tex)
+        } else {
+            this.inputs.push(tex)
+        }
+    }
+
+    disconnect(tex: TEX, index: number) {
+        for (let index = 0; index < tex.outputs.length; index++) {
+            const output: TEX = tex.outputs[index];
+            if (output == this) {
+                tex.outputs.splice(index, 1);
+                break;
+            }
+        }
+        if (this.inputs.length > 1) {
+            this.inputs.splice(index, 1)
+        } else {
+            this.inputs = []
+        }
+        super.render();
     }
 
 }

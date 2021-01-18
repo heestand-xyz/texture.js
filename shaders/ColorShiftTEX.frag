@@ -4,6 +4,8 @@ precision mediump float;
 
 uniform ivec2 u_resolution;
 
+uniform sampler2D u_sampler;
+
 // vec3 rgb2hsv(float r, float g, float b) {
 //     float h, s, v;
 //     float mn, mx, d;
@@ -94,7 +96,8 @@ uniform ivec2 u_resolution;
 // }
 
 void main() {
-    gl_FragColor = vec4(0.75, 0.5, 0.25, 1.0);
+    vec2 uv = gl_FragCoord.xy / vec2(u_resolution);
+    gl_FragColor = vec4(0.75, 0.5, 0.25, 1.0) + texture2D(u_sampler, uv);
 }
 
 

@@ -431,6 +431,12 @@ var TEXEffect = /** @class */ (function (_super) {
     });
     TEXEffect.prototype.connection = function () {
         console.log(this.shaderName + " Connect:", this.input);
+        if (this.input != null) {
+            this.gl.bindTexture(this.gl.TEXTURE_2D, this.input.texture);
+        }
+        else {
+            this.gl.bindTexture(this.gl.TEXTURE_2D, null);
+        }
         _super.prototype.render.call(this);
     };
     return TEXEffect;

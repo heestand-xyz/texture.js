@@ -513,26 +513,13 @@ class TEXEffect extends TEX {
 
     connection() {
         console.log(this.shaderName + " Connect:", this.input)
+        if (this.input != null) {
+            this.gl.bindTexture(this.gl.TEXTURE_2D, this.input!.texture);
+        } else {
+            this.gl.bindTexture(this.gl.TEXTURE_2D, null);
+        }
         super.render()
     }
-    
-    // loadTexture(): WebGLTexture {
-
-    //     const texture = this.gl.createTexture()!;
-    //     this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-
-    //     const level = 0;
-    //     const format = this.gl.RGBA;
-    //     const type = this.gl.UNSIGNED_BYTE;
-    //     this.gl.texImage2D(this.gl.TEXTURE_2D, level, format, format, type, image);
-
-    //     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-    //     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-    //     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
-
-    //     return texture
-
-    // }
 
 }
 

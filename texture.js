@@ -39,6 +39,7 @@ var Resolution = /** @class */ (function () {
 var TEX = /** @class */ (function () {
     function TEX(shaderName, canvas) {
         var _this = this;
+        this.outputs = [];
         this.uniformBools = function _() { return {}; };
         this.uniformInts = function _() { return {}; };
         this.uniformFloats = function _() { return {}; };
@@ -56,7 +57,7 @@ var TEX = /** @class */ (function () {
     }
     // Setup
     TEX.prototype.load = function (shaderName, loaded) {
-        var path = TEX.shaderFolder + shaderName + ".frag";
+        var path = TEX.shaderFolder + shaderName + ".glsl";
         var rawFile = new XMLHttpRequest();
         rawFile.open("GET", path, false);
         rawFile.onreadystatechange = function () {
@@ -120,30 +121,40 @@ var TEX = /** @class */ (function () {
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
         return positionBuffer;
     };
-    TEX.prototype.createTexture = function (gl, resolution, level) {
-        if (level === void 0) { level = 0; }
-        var targetTexture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, targetTexture);
-        {
-            var internalFormat = gl.RGBA;
-            var border = 0;
-            var format = gl.RGBA;
-            var type = gl.UNSIGNED_BYTE;
-            var data = null;
-            gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, resolution.width, resolution.height, border, format, type, data);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        }
-        return targetTexture;
-    };
-    TEX.prototype.createFramebuffer = function (gl, texture, level) {
-        if (level === void 0) { level = 0; }
-        var framebuffer = gl.createFramebuffer();
-        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-        var attachmentPoint = gl.COLOR_ATTACHMENT0;
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, texture, level);
-        return framebuffer;
+    // createTexture(gl: WebGLRenderingContext, resolution: Resolution, level: number = 0): WebGLTexture {
+    //     const targetTexture = gl.createTexture()!;
+    //     gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+    //     {
+    //         const internalFormat = gl.RGBA;
+    //         const border = 0;
+    //         const format = gl.RGBA;
+    //         const type = gl.UNSIGNED_BYTE;
+    //         const data = null;
+    //         gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, resolution.width, resolution.height, border, format, type, data);
+    //         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    //         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    //         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    //     }
+    //     return targetTexture
+    // }
+    // createFramebuffer(gl: WebGLRenderingContext, texture: WebGLTexture, level: number = 0): WebGLFramebuffer {
+    //     const framebuffer: WebGLFramebuffer = gl.createFramebuffer()!;
+    //     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    //     const attachmentPoint = gl.COLOR_ATTACHMENT0;
+    //     gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, texture, level);
+    //     return framebuffer
+    // }
+    TEX.prototype.createTextureFrom = function (image) {
+        var texture = this.gl.createTexture();
+        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+        var level = 0;
+        var format = this.gl.RGBA;
+        var type = this.gl.UNSIGNED_BYTE;
+        this.gl.texImage2D(this.gl.TEXTURE_2D, level, format, format, type, image);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+        return texture;
     };
     TEX.prototype.clear = function (gl) {
         gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
@@ -156,18 +167,18 @@ var TEX = /** @class */ (function () {
     // Layout
     TEX.prototype.layout = function () {
         this.resolution = new Resolution(this.canvas.width, this.canvas.height);
-        if (this.texture != null) {
-            this.gl.deleteTexture(this.texture);
-        }
-        this.texture = this.createTexture(this.gl, this.resolution);
-        if (this.framebuffer != null) {
-            this.gl.deleteFramebuffer(this.framebuffer);
-        }
-        this.framebuffer = this.createFramebuffer(this.gl, this.texture);
+        // if (this.texture != null) {
+        //     this.gl.deleteTexture(this.texture)
+        // }
+        // this.texture = this.createTexture(this.gl, this.resolution)
+        // if (this.framebuffer != null) {
+        //     this.gl.deleteFramebuffer(this.framebuffer)
+        // }
+        // this.framebuffer = this.createFramebuffer(this.gl, this.texture)
     };
     // Render
     TEX.prototype.render = function () {
-        this.renderTo(this.framebuffer);
+        // this.renderTo(this.framebuffer)
         this.renderTo(null);
     };
     TEX.prototype.renderTo = function (framebuffer) {
@@ -280,20 +291,8 @@ var ImageTEX = /** @class */ (function (_super) {
     });
     ImageTEX.prototype.loadImage = function (image) {
         this.imageResolution = new Resolution(image.width, image.height);
-        this.resourceTexture = this.loadTexture(image);
+        this.resourceTexture = this.createTextureFrom(image);
         _super.prototype.render.call(this);
-    };
-    ImageTEX.prototype.loadTexture = function (image) {
-        var texture = this.gl.createTexture();
-        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-        var level = 0;
-        var format = this.gl.RGBA;
-        var type = this.gl.UNSIGNED_BYTE;
-        this.gl.texImage2D(this.gl.TEXTURE_2D, level, format, format, type, image);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
-        return texture;
     };
     return ImageTEX;
 }(TEXResource));
@@ -425,17 +424,36 @@ var TEXEffect = /** @class */ (function (_super) {
     }
     Object.defineProperty(TEXEffect.prototype, "input", {
         get: function () { return this._input; },
-        set: function (value) { this._input = value; this.connection(); },
+        set: function (tex) {
+            if (this._input != undefined) {
+                this.disconnect(this.input);
+            }
+            if (tex != undefined) {
+                this.connect(tex);
+            }
+            this._input = tex;
+        },
         enumerable: false,
         configurable: true
     });
-    TEXEffect.prototype.connection = function () {
-        console.log(this.shaderName + " Connect:", this.input);
-        if (this.input != null) {
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.input.texture);
-        }
-        else {
-            this.gl.bindTexture(this.gl.TEXTURE_2D, null);
+    TEXEffect.prototype.connect = function (tex) {
+        var _this = this;
+        tex.outputs.push(this);
+        var url = tex.canvas.toDataURL();
+        var image = new Image(tex.resolution.width, tex.resolution.height);
+        image.src = url;
+        image.onload = function () {
+            _this.createTextureFrom(image);
+            _super.prototype.render.call(_this);
+        };
+    };
+    TEXEffect.prototype.disconnect = function (tex) {
+        for (var index = 0; index < tex.outputs.length; index++) {
+            var output = tex.outputs[index];
+            if (output == this) {
+                tex.outputs.splice(index, 1);
+                break;
+            }
         }
         _super.prototype.render.call(this);
     };
@@ -447,10 +465,16 @@ var ColorShiftTEX = /** @class */ (function (_super) {
         var _this = _super.call(this, "ColorShiftTEX", canvas) || this;
         _this._hue = 0.0;
         _this._saturation = 1.0;
+        _this._tintColor = new Color(1.0, 1.0, 1.0, 1.0);
         _this.uniformFloats = function _() {
             var uniforms = {};
             uniforms["u_hue"] = this.hue;
             uniforms["u_saturation"] = this.saturation;
+            return uniforms;
+        };
+        _this.uniformColors = function _() {
+            var uniforms = {};
+            uniforms["u_tintColor"] = this.tintColor;
             return uniforms;
         };
         _super.prototype.render.call(_this);
@@ -465,6 +489,12 @@ var ColorShiftTEX = /** @class */ (function (_super) {
     Object.defineProperty(ColorShiftTEX.prototype, "saturation", {
         get: function () { return this._saturation; },
         set: function (value) { this._saturation = value; _super.prototype.render.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(ColorShiftTEX.prototype, "tintColor", {
+        get: function () { return this._tintColor; },
+        set: function (value) { this._tintColor = value; _super.prototype.render.call(this); },
         enumerable: false,
         configurable: true
     });

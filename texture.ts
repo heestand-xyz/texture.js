@@ -41,11 +41,13 @@ class TEX {
     gl: WebGLRenderingContext
     
     resolution!: Resolution
-    texture!: WebGLTexture
-    framebuffer!: WebGLFramebuffer
+    // texture!: WebGLTexture
+    // framebuffer!: WebGLFramebuffer
 
     shaderProgram!: WebGLProgram
-    quadBuffer!: WebGLBuffer    
+    quadBuffer!: WebGLBuffer
+    
+    outputs: TEX[] = []
 
     uniformBools: () => Record<string, boolean> = function _(): Record<string, boolean> { return {} }
     uniformInts: () => Record<string, number> = function _(): Record<string, number> { return {} }
@@ -73,7 +75,7 @@ class TEX {
     // Setup
 
     load(shaderName: string, loaded: (_: string) => (void)) {
-        let path: string = TEX.shaderFolder + shaderName + ".frag"
+        let path: string = TEX.shaderFolder + shaderName + ".glsl"
         var rawFile = new XMLHttpRequest();
         rawFile.open("GET", path, false);
         rawFile.onreadystatechange = function () {
@@ -163,32 +165,50 @@ class TEX {
         return positionBuffer
     }
 
-    createTexture(gl: WebGLRenderingContext, resolution: Resolution, level: number = 0): WebGLTexture {
-        const targetTexture = gl.createTexture()!;
-        gl.bindTexture(gl.TEXTURE_2D, targetTexture);
-        {
-            const internalFormat = gl.RGBA;
-            const border = 0;
-            const format = gl.RGBA;
-            const type = gl.UNSIGNED_BYTE;
-            const data = null;
-            gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, resolution.width, resolution.height, border, format, type, data);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        }
-        return targetTexture
-    }
+    // createTexture(gl: WebGLRenderingContext, resolution: Resolution, level: number = 0): WebGLTexture {
+    //     const targetTexture = gl.createTexture()!;
+    //     gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+    //     {
+    //         const internalFormat = gl.RGBA;
+    //         const border = 0;
+    //         const format = gl.RGBA;
+    //         const type = gl.UNSIGNED_BYTE;
+    //         const data = null;
+    //         gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, resolution.width, resolution.height, border, format, type, data);
+    //         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    //         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    //         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    //     }
+    //     return targetTexture
+    // }
 
-    createFramebuffer(gl: WebGLRenderingContext, texture: WebGLTexture, level: number = 0): WebGLFramebuffer {
+    // createFramebuffer(gl: WebGLRenderingContext, texture: WebGLTexture, level: number = 0): WebGLFramebuffer {
 
-        const framebuffer: WebGLFramebuffer = gl.createFramebuffer()!;
-        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    //     const framebuffer: WebGLFramebuffer = gl.createFramebuffer()!;
+    //     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
 
-        const attachmentPoint = gl.COLOR_ATTACHMENT0;
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, texture, level);
+    //     const attachmentPoint = gl.COLOR_ATTACHMENT0;
+    //     gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, texture, level);
         
-        return framebuffer
+    //     return framebuffer
+
+    // }
+    
+    createTextureFrom(image: TexImageSource): WebGLTexture {
+
+        const texture = this.gl.createTexture()!;
+        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+
+        const level = 0;
+        const format = this.gl.RGBA;
+        const type = this.gl.UNSIGNED_BYTE;
+        this.gl.texImage2D(this.gl.TEXTURE_2D, level, format, format, type, image);
+
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+
+        return texture
 
     }
 
@@ -205,20 +225,20 @@ class TEX {
 
     public layout() {
         this.resolution = new Resolution(this.canvas.width, this.canvas.height)
-        if (this.texture != null) {
-            this.gl.deleteTexture(this.texture)
-        }
-        this.texture = this.createTexture(this.gl, this.resolution)
-        if (this.framebuffer != null) {
-            this.gl.deleteFramebuffer(this.framebuffer)
-        }
-        this.framebuffer = this.createFramebuffer(this.gl, this.texture)
+        // if (this.texture != null) {
+        //     this.gl.deleteTexture(this.texture)
+        // }
+        // this.texture = this.createTexture(this.gl, this.resolution)
+        // if (this.framebuffer != null) {
+        //     this.gl.deleteFramebuffer(this.framebuffer)
+        // }
+        // this.framebuffer = this.createFramebuffer(this.gl, this.texture)
     }
 
     // Render
 
     public render() {
-        this.renderTo(this.framebuffer)
+        // this.renderTo(this.framebuffer)
         this.renderTo(null)
     }
     
@@ -366,26 +386,8 @@ class ImageTEX extends TEXResource {
 
     public loadImage(image: TexImageSource) {
         this.imageResolution = new Resolution(image!.width, image!.height)
-        this.resourceTexture = this.loadTexture(image)
+        this.resourceTexture = this.createTextureFrom(image)
         super.render()
-    }
-    
-    loadTexture(image: TexImageSource): WebGLTexture {
-
-        const texture = this.gl.createTexture()!;
-        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-
-        const level = 0;
-        const format = this.gl.RGBA;
-        const type = this.gl.UNSIGNED_BYTE;
-        this.gl.texImage2D(this.gl.TEXTURE_2D, level, format, format, type, image);
-
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
-
-        return texture
-
     }
 
 }
@@ -503,7 +505,15 @@ class TEXEffect extends TEX {
 
     _input?: TEX
     public get input(): TEX | undefined { return this._input }
-    public set input(value: TEX | undefined) { this._input = value; this.connection(); }
+    public set input(tex: TEX | undefined) {
+        if (this._input != undefined) {
+            this.disconnect(this.input!)
+        }
+        if (tex != undefined) {
+            this.connect(tex)
+        }
+        this._input = tex;
+    }
 
     constructor(shaderName: string, canvas: HTMLCanvasElement) {
         
@@ -511,14 +521,26 @@ class TEXEffect extends TEX {
         
     }
 
-    connection() {
-        console.log(this.shaderName + " Connect:", this.input)
-        if (this.input != null) {
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.input!.texture);
-        } else {
-            this.gl.bindTexture(this.gl.TEXTURE_2D, null);
+    connect(tex: TEX) {
+        tex.outputs.push(this)
+        const url: string = tex.canvas.toDataURL();
+        const image: TexImageSource = new Image(tex.resolution.width, tex.resolution.height)
+        image.src = url
+        image.onload = () => {
+            this.createTextureFrom(image)
+            super.render()
         }
-        super.render()
+    }
+
+    disconnect(tex: TEX) {
+        for (let index = 0; index < tex.outputs.length; index++) {
+            const output: TEX = tex.outputs[index];
+            if (output == this) {
+                tex.outputs.splice(index, 1);
+                break;
+            }
+        }
+        super.render();
     }
 
 }
@@ -533,6 +555,10 @@ class ColorShiftTEX extends TEXEffect {
     public get saturation(): number { return this._saturation }
     public set saturation(value: number) { this._saturation = value; super.render(); }
 
+    _tintColor: Color = new Color(1.0, 1.0, 1.0, 1.0)
+    public get tintColor(): Color { return this._tintColor }
+    public set tintColor(value: Color) { this._tintColor = value; super.render(); }
+
     constructor(canvas: HTMLCanvasElement, input: TEX) {
 
         super("ColorShiftTEX", canvas)
@@ -541,6 +567,11 @@ class ColorShiftTEX extends TEXEffect {
             let uniforms: Record<string, number> = {};
             uniforms["u_hue"] = this.hue;
             uniforms["u_saturation"] = this.saturation;
+            return uniforms
+        }
+        this.uniformColors = function _(): Record<string, Color> {
+            let uniforms: Record<string, Color> = {};
+            uniforms["u_tintColor"] = this.tintColor;
             return uniforms
         }
         super.render()

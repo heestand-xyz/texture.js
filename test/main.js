@@ -43,10 +43,18 @@ const colorShiftTex = new ColorShiftTEX(canvasFour)
 colorShiftTex.input = circleTex
 
 
-// canvasOne.addEventListener('mousemove', e => {
-//     circleTex.radius = Math.abs(e.offsetY / canvasOne.clientHeight - 0.5)
-//     circleTex.position.x = (e.offsetX - canvasOne.clientWidth / 2.0) / canvasOne.clientHeight
-// })
+canvasOne.addEventListener('mousemove', e => {
+    const x = e.offsetX / canvasOne.clientWidth;
+    const y = e.offsetY / canvasOne.clientHeight;
+    circleTex.radius = Math.abs(y - 0.5)
+    circleTex.position.x = (e.offsetX - canvasOne.clientWidth / 2.0) / canvasOne.clientHeight
+})
+canvasFour.addEventListener('mousemove', e => {
+    const x = e.offsetX / canvasFour.clientWidth;
+    const y = e.offsetY / canvasFour.clientHeight;
+    colorShiftTex.hue = x
+    colorShiftTex.saturation = y
+})
 
 function update() {
     circleTex.layout()

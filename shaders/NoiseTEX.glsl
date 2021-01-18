@@ -158,12 +158,12 @@ void main() {
         float greenNoise = octave_noise_4d(u_octaves, u_persistence, u_scale, x, y, z, 1.0);
         float blueNoise = octave_noise_4d(u_octaves, u_persistence, u_scale, x, y, z, 2.0);
 
-        color = vec4(0.5 + redNoise / 2.0, 0.5 + greenNoise / 2.0, 0.5 + blueNoise / 2.0, 1.0);
+        color = vec4(0.5 + redNoise, 0.5 + greenNoise, 0.5 + blueNoise, 1.0);
 
     } else {
 
         float noise = octave_noise_4d(u_octaves, u_persistence, u_scale, x, y, z, 0.0);
-        noise = 0.5 + noise / 2.0;
+        noise = 0.5 + noise;
 
         color = u_backgroundColor * (1.0 - noise) + u_color * noise;
 

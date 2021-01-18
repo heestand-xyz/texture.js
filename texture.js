@@ -164,6 +164,17 @@ var TEX = /** @class */ (function () {
         // Clear the canvas before we start drawing on it.
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     };
+    // Push Pixels
+    TEX.prototype.pushPixels = function (fromTex) {
+        var _this = this;
+        var url = fromTex.canvas.toDataURL();
+        var image = new Image(fromTex.resolution.width, fromTex.resolution.height);
+        image.src = url;
+        image.onload = function () {
+            _this.createTextureFrom(image);
+            _this.render();
+        };
+    };
     // Layout
     TEX.prototype.layout = function () {
         this.resolution = new Resolution(this.canvas.width, this.canvas.height);
@@ -178,8 +189,12 @@ var TEX = /** @class */ (function () {
     };
     // Render
     TEX.prototype.render = function () {
+        var _this = this;
         // this.renderTo(this.framebuffer)
         this.renderTo(null);
+        this.outputs.forEach(function (output) {
+            output.pushPixels(_this);
+        });
     };
     TEX.prototype.renderTo = function (framebuffer) {
         this.clear(this.gl);
@@ -437,15 +452,8 @@ var TEXEffect = /** @class */ (function (_super) {
         configurable: true
     });
     TEXEffect.prototype.connect = function (tex) {
-        var _this = this;
         tex.outputs.push(this);
-        var url = tex.canvas.toDataURL();
-        var image = new Image(tex.resolution.width, tex.resolution.height);
-        image.src = url;
-        image.onload = function () {
-            _this.createTextureFrom(image);
-            _super.prototype.render.call(_this);
-        };
+        _super.prototype.pushPixels.call(this, tex);
     };
     TEXEffect.prototype.disconnect = function (tex) {
         for (var index = 0; index < tex.outputs.length; index++) {

@@ -221,6 +221,18 @@ class TEX {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     }
 
+    // Push Pixels
+
+    pushPixels(fromTex: TEX) {
+        const url: string = fromTex.canvas.toDataURL();
+        const image: TexImageSource = new Image(fromTex.resolution.width, fromTex.resolution.height)
+        image.src = url
+        image.onload = () => {
+            this.createTextureFrom(image)
+            this.render()
+        }
+    }
+
     // Layout
 
     public layout() {
@@ -240,6 +252,9 @@ class TEX {
     public render() {
         // this.renderTo(this.framebuffer)
         this.renderTo(null)
+        this.outputs.forEach(output => {
+            output.pushPixels(this)
+        });
     }
     
     renderTo(framebuffer: WebGLFramebuffer | null) {
@@ -523,13 +538,7 @@ class TEXEffect extends TEX {
 
     connect(tex: TEX) {
         tex.outputs.push(this)
-        const url: string = tex.canvas.toDataURL();
-        const image: TexImageSource = new Image(tex.resolution.width, tex.resolution.height)
-        image.src = url
-        image.onload = () => {
-            this.createTextureFrom(image)
-            super.render()
-        }
+        super.pushPixels(tex)
     }
 
     disconnect(tex: TEX) {

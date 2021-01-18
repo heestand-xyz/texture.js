@@ -145,9 +145,9 @@ var TEX = /** @class */ (function () {
     //     gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, texture, level);
     //     return framebuffer
     // }
-    TEX.prototype.createTextureFrom = function (image, index) {
+    TEX.prototype.createTexture = function (image, index) {
+        // console.log(this.shaderName + " - " + "createTextureFrom image index:", index)
         if (index === void 0) { index = 0; }
-        console.log(this.shaderName + " - " + "createTextureFrom image index:", index);
         var texture = this.gl.createTexture();
         if (index == 0) {
             this.gl.activeTexture(this.gl.TEXTURE0);
@@ -175,22 +175,37 @@ var TEX = /** @class */ (function () {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     };
     // Push Pixels
-    TEX.prototype.pushPixels = function (fromTex, index) {
-        var _this = this;
-        var url = fromTex.canvas.toDataURL();
-        var image = new Image(fromTex.resolution.width, fromTex.resolution.height);
-        image.src = url;
-        image.onload = function () {
-            var inputIndex = 0;
-            if (index != null) {
-                inputIndex = index;
-            }
-            else {
-                inputIndex = _this.indexOfInput(fromTex);
-            }
-            _this.createTextureFrom(image, inputIndex);
-            _this.render();
-        };
+    // pushPixels(fromTex: TEX, index?: number) {
+    //     const url: string = fromTex.canvas.toDataURL();
+    //     const image: TexImageSource = new Image(fromTex.resolution.width, fromTex.resolution.height)
+    //     image.src = url
+    //     image.onload = () => {
+    //         var inputIndex: number = 0
+    //         if (index != null) {
+    //             inputIndex = index!
+    //         } else {
+    //             inputIndex = this.indexOfInput(fromTex)
+    //         }
+    //         this.createTexture(image, inputIndex!)
+    //         this.render()
+    //     }
+    // }
+    TEX.prototype.pushPixels = function (fromTex, toTex, index) {
+        fromTex.canvas.toBlob(function (blob) {
+            var image = new Image(fromTex.resolution.width, fromTex.resolution.height);
+            image.src = URL.createObjectURL(blob);
+            image.onload = function () {
+                var inputIndex = 0;
+                if (index != null) {
+                    inputIndex = index;
+                }
+                else {
+                    inputIndex = toTex.indexOfInput(fromTex);
+                }
+                toTex.createTexture(image, inputIndex);
+                toTex.render();
+            };
+        });
     };
     TEX.prototype.indexOfInput = function (tex) {
         for (var index = 0; index < this.inputs.length; index++) {
@@ -216,10 +231,11 @@ var TEX = /** @class */ (function () {
     // Render
     TEX.prototype.render = function () {
         var _this = this;
+        // console.log(this.shaderName + " - " + "render")
         // this.renderTo(this.framebuffer)
         this.renderTo(null);
         this.outputs.forEach(function (output) {
-            output.pushPixels(_this);
+            output.pushPixels(_this, output);
         });
     };
     TEX.prototype.renderTo = function (framebuffer) {
@@ -336,7 +352,7 @@ var ImageTEX = /** @class */ (function (_super) {
     });
     ImageTEX.prototype.loadImage = function (image) {
         this.imageResolution = new Resolution(image.width, image.height);
-        this.resourceTexture = this.createTextureFrom(image);
+        this.resourceTexture = this.createTexture(image);
         _super.prototype.render.call(this);
     };
     return ImageTEX;
@@ -490,7 +506,7 @@ var TEXEffect = /** @class */ (function (_super) {
     TEXEffect.prototype.connect = function (tex) {
         tex.outputs.push(this);
         this.inputs = [tex];
-        _super.prototype.pushPixels.call(this, tex);
+        _super.prototype.pushPixels.call(this, tex, this);
     };
     TEXEffect.prototype.disconnect = function (tex) {
         for (var index = 0; index < tex.outputs.length; index++) {
@@ -590,7 +606,7 @@ var TEXMergeEffect = /** @class */ (function (_super) {
     });
     TEXMergeEffect.prototype.connect = function (tex, index) {
         tex.outputs.push(this);
-        _super.prototype.pushPixels.call(this, tex, index);
+        _super.prototype.pushPixels.call(this, tex, this, index);
         if (this.inputs.length > 0) {
             this.inputs.splice(index, 0, tex);
         }

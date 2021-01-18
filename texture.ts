@@ -197,9 +197,9 @@ class TEX {
 
     // }
     
-    createTextureFrom(image: TexImageSource, index: number = 0): WebGLTexture {
+    createTexture(image: TexImageSource, index: number = 0): WebGLTexture {
 
-        console.log(this.shaderName + " - " + "createTextureFrom image index:", index)
+        // console.log(this.shaderName + " - " + "createTextureFrom image index:", index)
 
         const texture = this.gl.createTexture()!;
 
@@ -236,20 +236,37 @@ class TEX {
 
     // Push Pixels
 
-    pushPixels(fromTex: TEX, index?: number) {
-        const url: string = fromTex.canvas.toDataURL();
-        const image: TexImageSource = new Image(fromTex.resolution.width, fromTex.resolution.height)
-        image.src = url
-        image.onload = () => {
-            var inputIndex: number = 0
-            if (index != null) {
-                inputIndex = index!
-            } else {
-                inputIndex = this.indexOfInput(fromTex)
+    // pushPixels(fromTex: TEX, index?: number) {
+    //     const url: string = fromTex.canvas.toDataURL();
+    //     const image: TexImageSource = new Image(fromTex.resolution.width, fromTex.resolution.height)
+    //     image.src = url
+    //     image.onload = () => {
+    //         var inputIndex: number = 0
+    //         if (index != null) {
+    //             inputIndex = index!
+    //         } else {
+    //             inputIndex = this.indexOfInput(fromTex)
+    //         }
+    //         this.createTexture(image, inputIndex!)
+    //         this.render()
+    //     }
+    // }
+
+    pushPixels(fromTex: TEX, toTex: TEX, index?: number) {
+        fromTex.canvas.toBlob(function(blob) {
+            const image: TexImageSource = new Image(fromTex.resolution.width, fromTex.resolution.height)
+            image.src = URL.createObjectURL(blob)
+            image.onload = () => {
+                var inputIndex: number = 0
+                if (index != null) {
+                    inputIndex = index!
+                } else {
+                    inputIndex = toTex.indexOfInput(fromTex)
+                }
+                toTex.createTexture(image, inputIndex!)
+                toTex.render()
             }
-            this.createTextureFrom(image, inputIndex!)
-            this.render()
-        }
+        });
     }
 
     indexOfInput(tex: TEX): number {
@@ -279,10 +296,11 @@ class TEX {
     // Render
 
     public render() {
+        // console.log(this.shaderName + " - " + "render")
         // this.renderTo(this.framebuffer)
         this.renderTo(null)
         this.outputs.forEach(output => {
-            output.pushPixels(this)
+            output.pushPixels(this, output)
         });
     }
     
@@ -432,7 +450,7 @@ class ImageTEX extends TEXResource {
 
     public loadImage(image: TexImageSource) {
         this.imageResolution = new Resolution(image!.width, image!.height)
-        this.resourceTexture = this.createTextureFrom(image)
+        this.resourceTexture = this.createTexture(image)
         super.render()
     }
 
@@ -578,7 +596,7 @@ class TEXEffect extends TEX {
     connect(tex: TEX) {
         tex.outputs.push(this)
         this.inputs = [tex]
-        super.pushPixels(tex)
+        super.pushPixels(tex, this)
     }
 
     disconnect(tex: TEX) {
@@ -677,7 +695,7 @@ class TEXMergeEffect extends TEX {
 
     connect(tex: TEX, index: number) {
         tex.outputs.push(this)
-        super.pushPixels(tex, index)
+        super.pushPixels(tex, this, index)
         if (this.inputs.length > 0) {
             this.inputs.splice(index, 0, tex)
         } else {

@@ -45,6 +45,7 @@ colorShiftTex.input = blendTex
 // Mouse Over
 
 canvasOne.addEventListener('mousemove', e => {
+    // console.log("mouse move on one")
     const x = (e.offsetX - canvasOne.clientWidth / 2.0) / canvasOne.clientHeight;
     const y = e.offsetY / canvasOne.clientHeight - 0.5;
     const dist = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2))
@@ -52,6 +53,7 @@ canvasOne.addEventListener('mousemove', e => {
 })
 
 canvasTwo.addEventListener('mousemove', e => {
+    // console.log("mouse move on two")
     const x = e.offsetX / canvasTwo.clientWidth;
     const y = e.offsetY / canvasTwo.clientHeight;
     polygonTex.rotation = x
@@ -59,10 +61,18 @@ canvasTwo.addEventListener('mousemove', e => {
 })
 
 canvasFour.addEventListener('mousemove', e => {
+    // console.log("mouse move on four")
     const x = e.offsetX / canvasFour.clientWidth;
     const y = e.offsetY / canvasFour.clientHeight;
     colorShiftTex.hue = x
     colorShiftTex.saturation = 0.5 + y
+})
+
+// Click
+
+canvasThree.addEventListener('click', e => {
+    // console.log("click on three")
+    circleTex.render()
 })
 
 // Window Resize

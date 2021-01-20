@@ -1,16 +1,23 @@
 const onlineShaderFolderURL: string = "https://heestand-xyz.github.io/texture.js/shaders/"
 
 class Color {
-    red: number
-    green: number
-    blue: number
-    alpha: number
+    
+    red: number;
+    green: number;
+    blue: number;
+    alpha: number;
+
+    static clear: Color = new Color(0.0, 0.0, 0.0, 0.0);
+    static black: Color = new Color(0.0, 0.0, 0.0, 1.0);
+    static white: Color = new Color(1.0, 1.0, 1.0, 1.0);
+
     constructor(red: number, green: number, blue: number, alpha: number) {
-        this.red = red
-        this.green = green
-        this.blue = blue
-        this.alpha = alpha
+        this.red = red;
+        this.green = green;
+        this.blue = blue;
+        this.alpha = alpha;
     }
+
 }
 
 class Position {
@@ -58,6 +65,9 @@ class TEX {
     uniformPositions: () => Record<string, Position> = function _(): Record<string, Position> { return {} }
     uniformResolutions: () => Record<string, Resolution> = function _(): Record<string, Resolution> { return {} }
     uniformColors: () => Record<string, Color> = function _(): Record<string, Color> { return {} }
+
+    uniformArrayOfFloats: () => Record<string, number[]> = function _(): Record<string, number[]> { return {} }
+    uniformArrayOfColors: () => Record<string, Color[]> = function _(): Record<string, Color[]> { return {} }
 
     subRender?: () => void
 
@@ -334,7 +344,7 @@ class TEX {
             this.subRender!();
         }
 
-        // Resolution
+        // Global Resolution
 
         let resolutionLocation: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, "u_resolution")!
         this.gl.uniform2i(resolutionLocation, this.resolution.width, this.resolution.height)
@@ -342,7 +352,7 @@ class TEX {
         // Bools
         const uniformBools: Record<string, boolean> = this.uniformBools();
         for (var key in uniformBools) {
-            let value = uniformBools[key];
+            let value: Boolean = uniformBools[key];
             let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
             this.gl.uniform1i(location, value ? 1 : 0);
         }
@@ -350,7 +360,7 @@ class TEX {
         // Ints
         const uniformInts: Record<string, number> = this.uniformInts();
         for (var key in uniformInts) {
-            let value = uniformInts[key];
+            let value: number = uniformInts[key];
             let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
             this.gl.uniform1i(location, value);
         }
@@ -358,7 +368,7 @@ class TEX {
         // Floats
         const uniformFloats: Record<string, number> = this.uniformFloats();
         for (var key in uniformFloats) {
-            let value = uniformFloats[key];
+            let value: number = uniformFloats[key];
             let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
             this.gl.uniform1f(location, value);
         }
@@ -366,7 +376,7 @@ class TEX {
         // Positions
         const uniformPositions: Record<string, Position> = this.uniformPositions();
         for (var key in uniformPositions) {
-            let value = uniformPositions[key];
+            let value: Position = uniformPositions[key];
             let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
             this.gl.uniform2f(location, value.x, value.y);
         }
@@ -374,7 +384,7 @@ class TEX {
         // Resolutions
         const uniformResolutions: Record<string, Resolution> = this.uniformResolutions();
         for (var key in uniformResolutions) {
-            let value = uniformResolutions[key];
+            let value: Resolution = uniformResolutions[key];
             let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
             this.gl.uniform2i(location, value.width, value.height);
         }
@@ -382,9 +392,35 @@ class TEX {
         // Colors
         const uniformColors: Record<string, Color> = this.uniformColors();
         for (var key in uniformColors) {
-            let value = uniformColors[key];
+            let value: Color = uniformColors[key];
             let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
             this.gl.uniform4f(location, value.red, value.green, value.blue, value.alpha);
+        }
+
+        // Array of Floats
+        const uniformArrayOfFloats: Record<string, number[]> = this.uniformArrayOfFloats();
+        for (var key in uniformArrayOfFloats) {
+            let array: number[] = uniformArrayOfFloats[key];
+            let list: Float32List = new Float32Array(array);
+            let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
+            this.gl.uniform1fv(location, list);
+        }
+
+        // Array of Colors
+        const uniformArrayOfColors: Record<string, Color[]> = this.uniformArrayOfColors();
+        for (var key in uniformArrayOfColors) {
+            let array: Color[] = uniformArrayOfColors[key];
+            var flatArray: number[] = [];
+            for (let index = 0; index < array.length; index++) {
+                const color: Color = array[index];
+                flatArray.push(color.red);
+                flatArray.push(color.green);
+                flatArray.push(color.blue);
+                flatArray.push(color.alpha);
+            }            
+            let list: Float32List = new Float32Array(flatArray);
+            let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
+            this.gl.uniform4fv(location, list)
         }
 
         // Final
@@ -601,6 +637,86 @@ class NoiseTEX extends TEXGenerator {
         this.uniformBools = function _(): Record<string, boolean> {
             let uniforms: Record<string, boolean> = {};
             uniforms["u_colored"] = this.colored;
+            return uniforms
+        }
+        super.render()
+
+    }
+
+}
+
+enum GradientDirection {
+    horizontal = 0,
+    vertical = 1,
+    radial = 2,
+    angle = 3,
+}
+
+enum GradientExtend {
+    zero = 0,
+    hold = 1,
+    loop = 2,
+    mirror = 3,
+}
+
+class GradientColorStop {
+    stop: number;
+    color: Color;
+    constructor(stop: number, color: Color) {
+        this.stop = stop
+        this.color = color
+    }
+}
+
+class GradientTEX extends TEXGenerator {
+
+    _direction: GradientDirection = GradientDirection.vertical
+    public get direction(): GradientDirection { return this._direction }
+    public set direction(value: GradientDirection) { this._direction = value; super.render(); }
+    
+    _scale: number = 1.0
+    public get scale(): number { return this._scale }
+    public set scale(value: number) { this._scale = value; super.render(); }
+    
+    _offset: number = 0.0
+    public get offset(): number { return this._offset }
+    public set offset(value: number) { this._offset = value; super.render(); }
+    
+    _extend: GradientExtend = GradientExtend.mirror
+    public get extend(): GradientExtend { return this._extend }
+    public set extend(value: GradientExtend) { this._extend = value; super.render(); }
+    
+    _colorStops: GradientColorStop[] = [new GradientColorStop(0.0, Color.black), new GradientColorStop(1.0, Color.white)]
+    public get colorStops(): GradientColorStop[] { return this._colorStops }
+    public set colorStops(value: GradientColorStop[]) { this._colorStops = value; super.render(); }
+    
+    // var colorStops: [ColorStop]
+    
+    constructor(canvas: HTMLCanvasElement) {
+        
+        super("GradientTEX", canvas)
+
+        this.uniformInts = function _(): Record<string, number> {
+            let uniforms: Record<string, number> = {};
+            uniforms["u_direction"] = this.direction;
+            uniforms["u_extend"] = this.extend;
+            uniforms["u_colorStopCount"] = this.colorStops.length;
+            return uniforms
+        }
+        this.uniformFloats = function _(): Record<string, number> {
+            let uniforms: Record<string, number> = {};
+            uniforms["u_scale"] = this.scale;
+            uniforms["u_offset"] = this.offset;
+            return uniforms
+        }
+        this.uniformArrayOfFloats = function _(): Record<string, number[]> {
+            let uniforms: Record<string, number[]> = {};
+            uniforms["u_stops"] = this.colorStops.map(x => x.stop);
+            return uniforms
+        }
+        this.uniformArrayOfColors = function _(): Record<string, Color[]> {
+            let uniforms: Record<string, Color[]> = {};
+            uniforms["u_colors"] = this.colorStops.map(x => x.color);
             return uniforms
         }
         super.render()

@@ -1,0 +1,25 @@
+<html>
+    <head>
+        <title>texture.js - PolygonTEX</title>
+    </head>
+    <body>
+
+        <canvas id="texture"></canvas>
+        <br><br>
+        <img id="image" width=100>
+
+        <script src="https://heestand-xyz.github.io/texture.js/texture.js"></script>
+        <script>
+
+            var canvas = document.getElementById("texture");
+            var img = document.getElementById("image");
+
+            var gradientTex = new GradientTEX(canvas);
+            
+            const url = canvas.toDataURL("image/jpeg", 0.8)
+            img.src = url
+            
+        </script>
+        
+    </body>
+</html>

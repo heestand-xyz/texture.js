@@ -20,6 +20,9 @@ var Color = /** @class */ (function () {
         this.blue = blue;
         this.alpha = alpha;
     }
+    Color.clear = new Color(0.0, 0.0, 0.0, 0.0);
+    Color.black = new Color(0.0, 0.0, 0.0, 1.0);
+    Color.white = new Color(1.0, 1.0, 1.0, 1.0);
     return Color;
 }());
 var Position = /** @class */ (function () {
@@ -48,6 +51,8 @@ var TEX = /** @class */ (function () {
         this.uniformPositions = function _() { return {}; };
         this.uniformResolutions = function _() { return {}; };
         this.uniformColors = function _() { return {}; };
+        this.uniformArrayOfFloats = function _() { return {}; };
+        this.uniformArrayOfColors = function _() { return {}; };
         // Push Pixels
         this.pixelPushIndex = 0;
         this.shaderName = shaderName;
@@ -259,7 +264,7 @@ var TEX = /** @class */ (function () {
         if (this.subRender != undefined) {
             this.subRender();
         }
-        // Resolution
+        // Global Resolution
         var resolutionLocation = this.gl.getUniformLocation(this.shaderProgram, "u_resolution");
         this.gl.uniform2i(resolutionLocation, this.resolution.width, this.resolution.height);
         // Bools
@@ -303,6 +308,30 @@ var TEX = /** @class */ (function () {
             var value = uniformColors[key];
             var location_6 = this.gl.getUniformLocation(this.shaderProgram, key);
             this.gl.uniform4f(location_6, value.red, value.green, value.blue, value.alpha);
+        }
+        // Array of Floats
+        var uniformArrayOfFloats = this.uniformArrayOfFloats();
+        for (var key in uniformArrayOfFloats) {
+            var array = uniformArrayOfFloats[key];
+            var list = new Float32Array(array);
+            var location_7 = this.gl.getUniformLocation(this.shaderProgram, key);
+            this.gl.uniform1fv(location_7, list);
+        }
+        // Array of Colors
+        var uniformArrayOfColors = this.uniformArrayOfColors();
+        for (var key in uniformArrayOfColors) {
+            var array = uniformArrayOfColors[key];
+            var flatArray = [];
+            for (var index = 0; index < array.length; index++) {
+                var color = array[index];
+                flatArray.push(color.red);
+                flatArray.push(color.green);
+                flatArray.push(color.blue);
+                flatArray.push(color.alpha);
+            }
+            var list = new Float32Array(flatArray);
+            var location_8 = this.gl.getUniformLocation(this.shaderProgram, key);
+            this.gl.uniform4fv(location_8, list);
         }
         // Final
         {
@@ -537,6 +566,95 @@ var NoiseTEX = /** @class */ (function (_super) {
         configurable: true
     });
     return NoiseTEX;
+}(TEXGenerator));
+var GradientDirection;
+(function (GradientDirection) {
+    GradientDirection[GradientDirection["horizontal"] = 0] = "horizontal";
+    GradientDirection[GradientDirection["vertical"] = 1] = "vertical";
+    GradientDirection[GradientDirection["radial"] = 2] = "radial";
+    GradientDirection[GradientDirection["angle"] = 3] = "angle";
+})(GradientDirection || (GradientDirection = {}));
+var GradientExtend;
+(function (GradientExtend) {
+    GradientExtend[GradientExtend["zero"] = 0] = "zero";
+    GradientExtend[GradientExtend["hold"] = 1] = "hold";
+    GradientExtend[GradientExtend["loop"] = 2] = "loop";
+    GradientExtend[GradientExtend["mirror"] = 3] = "mirror";
+})(GradientExtend || (GradientExtend = {}));
+var GradientColorStop = /** @class */ (function () {
+    function GradientColorStop(stop, color) {
+        this.stop = stop;
+        this.color = color;
+    }
+    return GradientColorStop;
+}());
+var GradientTEX = /** @class */ (function (_super) {
+    __extends(GradientTEX, _super);
+    // var colorStops: [ColorStop]
+    function GradientTEX(canvas) {
+        var _this = _super.call(this, "GradientTEX", canvas) || this;
+        _this._direction = GradientDirection.vertical;
+        _this._scale = 1.0;
+        _this._offset = 0.0;
+        _this._extend = GradientExtend.mirror;
+        _this._colorStops = [new GradientColorStop(0.0, Color.black), new GradientColorStop(1.0, Color.white)];
+        _this.uniformInts = function _() {
+            var uniforms = {};
+            uniforms["u_direction"] = this.direction;
+            uniforms["u_extend"] = this.extend;
+            uniforms["u_colorStopCount"] = this.colorStops.length;
+            return uniforms;
+        };
+        _this.uniformFloats = function _() {
+            var uniforms = {};
+            uniforms["u_scale"] = this.scale;
+            uniforms["u_offset"] = this.offset;
+            return uniforms;
+        };
+        _this.uniformArrayOfFloats = function _() {
+            var uniforms = {};
+            uniforms["u_stops"] = this.colorStops.map(function (x) { return x.stop; });
+            return uniforms;
+        };
+        _this.uniformArrayOfColors = function _() {
+            var uniforms = {};
+            uniforms["u_colors"] = this.colorStops.map(function (x) { return x.color; });
+            return uniforms;
+        };
+        _super.prototype.render.call(_this);
+        return _this;
+    }
+    Object.defineProperty(GradientTEX.prototype, "direction", {
+        get: function () { return this._direction; },
+        set: function (value) { this._direction = value; _super.prototype.render.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(GradientTEX.prototype, "scale", {
+        get: function () { return this._scale; },
+        set: function (value) { this._scale = value; _super.prototype.render.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(GradientTEX.prototype, "offset", {
+        get: function () { return this._offset; },
+        set: function (value) { this._offset = value; _super.prototype.render.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(GradientTEX.prototype, "extend", {
+        get: function () { return this._extend; },
+        set: function (value) { this._extend = value; _super.prototype.render.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(GradientTEX.prototype, "colorStops", {
+        get: function () { return this._colorStops; },
+        set: function (value) { this._colorStops = value; _super.prototype.render.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    return GradientTEX;
 }(TEXGenerator));
 // TEX Effect
 var TEXEffect = /** @class */ (function (_super) {

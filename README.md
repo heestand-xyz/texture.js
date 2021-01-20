@@ -13,7 +13,8 @@ var canvas = document.getElementById("texture")
 
 ```js
 var circleTex = new CircleTEX(canvas)
-polygonTex.radius = 0.25
+circleTex.position = new Position(0.0, 0.0)
+circleTex.radius = 0.25
 ```
 
 ![CircleTEX](https://heestand-xyz.github.io/texture.js/renders/CircleTEX.jpeg)
@@ -22,6 +23,7 @@ polygonTex.radius = 0.25
 
 ```js
 var polygonTex = new PolygonTEX(canvas)
+polygonTex.vertexCount = 3
 polygonTex.radius = 1.0 / 3.0
 polygonTex.cornerRadius = 0.05
 ```

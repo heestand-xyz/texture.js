@@ -9,6 +9,7 @@
 var canvas = document.getElementById("texture")
 ```
 
+
 ## Circle
 
 ```js
@@ -18,6 +19,7 @@ circleTex.radius = 0.25
 ```
 
 ![CircleTEX](https://heestand-xyz.github.io/texture.js/renders/CircleTEX.jpeg)
+
 
 ## Polygon
 
@@ -30,6 +32,7 @@ polygonTex.cornerRadius = 0.05
 
 ![PolygonTEX](https://heestand-xyz.github.io/texture.js/renders/PolygonTEX.jpeg)
 
+
 ## Noise
 
 ```js
@@ -39,4 +42,19 @@ noiseTex.scale = 1.5
 ```
 
 ![NoiseTEX](https://heestand-xyz.github.io/texture.js/renders/NoiseTEX.jpeg)
+
+
+## Gradient
+
+```js
+var gradientTex = new GradientTEX(canvas);
+gradientTex.direction = GradientDirection.vertical
+gradientTex.scale = 1.0
+gradientTex.colorStops = [
+    new GradientColorStop(0.0, Color.black),
+    new GradientColorStop(1.0, Color.white)
+]
+```
+
+![GradientTEX](https://heestand-xyz.github.io/texture.js/renders/GradientTEX.jpeg)
 

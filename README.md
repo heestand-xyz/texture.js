@@ -1,5 +1,7 @@
 # texture.js
 
+[npm package](https://www.npmjs.com/package/texture-js-package)
+
 ```html
 <canvas id="texture"></canvas>
 <script src="https://heestand-xyz.github.io/texture.js/texture.js"></script>

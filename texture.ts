@@ -19,6 +19,7 @@ class Color {
     }
 
 }
+module.exports = Color;
 
 class Position {
     x: number
@@ -28,6 +29,7 @@ class Position {
         this.y = y
     }
 }
+module.exports = Position;
 
 class Resolution {
     width: number
@@ -37,6 +39,7 @@ class Resolution {
         this.height = height
     }
 }
+module.exports = Resolution;
 
 // TEX
 
@@ -50,8 +53,8 @@ class TEX {
     gl: WebGLRenderingContext
     
     resolution!: Resolution
-    // texture!: WebGLTexture
-    // framebuffer!: WebGLFramebuffer
+    texture!: WebGLTexture
+    framebuffer!: WebGLFramebuffer
 
     shaderProgram!: WebGLProgram
     quadBuffer!: WebGLBuffer
@@ -185,46 +188,51 @@ class TEX {
         return positionBuffer
     }
 
-    // createTexture(gl: WebGLRenderingContext, resolution: Resolution, level: number = 0): WebGLTexture {
-    //     const targetTexture = gl.createTexture()!;
-    //     gl.bindTexture(gl.TEXTURE_2D, targetTexture);
-    //     {
-    //         const internalFormat = gl.RGBA;
-    //         const border = 0;
-    //         const format = gl.RGBA;
-    //         const type = gl.UNSIGNED_BYTE;
-    //         const data = null;
-    //         gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, resolution.width, resolution.height, border, format, type, data);
-    //         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    //         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    //         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    //     }
-    //     return targetTexture
-    // }
+    createEmptyTexture(gl: WebGLRenderingContext, resolution: Resolution): WebGLTexture {
+        const emptyTexture = gl.createTexture()!;
+        gl.bindTexture(gl.TEXTURE_2D, emptyTexture);
+        {
+            const internalFormat = gl.RGBA;
+            const border = 0;
+            const level = 0;
+            const format = gl.RGBA;
+            const type = gl.UNSIGNED_BYTE;
+            const data = null;
+            gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, resolution.width, resolution.height, border, format, type, data);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        }
+        return emptyTexture
+    }
 
-    // createFramebuffer(gl: WebGLRenderingContext, texture: WebGLTexture, level: number = 0): WebGLFramebuffer {
+    createFramebuffer(gl: WebGLRenderingContext, texture: WebGLTexture, index: number = 0): WebGLFramebuffer {
 
-    //     const framebuffer: WebGLFramebuffer = gl.createFramebuffer()!;
-    //     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+        const framebuffer: WebGLFramebuffer = gl.createFramebuffer()!;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
 
-    //     const attachmentPoint = gl.COLOR_ATTACHMENT0;
-    //     gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, texture, level);
+        const attachmentPoint = gl.COLOR_ATTACHMENT0;
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, texture, 0);
         
-    //     return framebuffer
+        return framebuffer
 
-    // }
-    
-    createTexture(image: TexImageSource, index: number = 0): WebGLTexture {
+    }
 
-        // console.log(this.shaderName + " - " + "createTextureFrom image index:", index)
-
-        const texture = this.gl.createTexture()!;
+    activateTexture(texture: WebGLTexture, index: number) {
 
         if (index == 0) {
             this.gl.activeTexture(this.gl.TEXTURE0)
         } else if (index == 1) {
             this.gl.activeTexture(this.gl.TEXTURE1)
         }
+
+    }
+    
+    createTexture(image: TexImageSource, index: number = 0): WebGLTexture {
+
+        const texture = this.gl.createTexture()!;
+
+        this.activateTexture(texture, index)
 
         this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 
@@ -243,37 +251,47 @@ class TEX {
     }
 
     clear(gl: WebGLRenderingContext) {
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
-        gl.clearDepth(1.0);                 // Clear everything
-        gl.enable(gl.DEPTH_TEST);           // Enable depth testing
-        gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
-        // Clear the canvas before we start drawing on it.
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clearDepth(1.0);
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     }
     
     // Push Pixels
 
-    pixelPushIndex: number = 0
+    // pixelPushIndex: number = 0
+    // 
+    // pushPixels(fromTex: TEX, toTex: TEX, index?: number) {
+    //     const currentPixelPushIndex = toTex.pixelPushIndex + 1
+    //     toTex.pixelPushIndex = currentPixelPushIndex
+    //     fromTex.canvas.toBlob(function(blob) {
+    //         if (currentPixelPushIndex != toTex.pixelPushIndex) { return; }
+    //         const image: TexImageSource = new Image(fromTex.resolution.width, fromTex.resolution.height)
+    //         image.src = URL.createObjectURL(blob)
+    //         image.onload = () => {
+    //             if (currentPixelPushIndex != toTex.pixelPushIndex) { return; }
+    //             var inputIndex: number = 0
+    //             if (index != null) {
+    //                 inputIndex = index!
+    //             } else {
+    //                 inputIndex = toTex.indexOfInput(fromTex)
+    //             }
+    //             toTex.createTexture(image, inputIndex!)
+    //             toTex.render()
+    //         }
+    //     });
+    // }
 
-    pushPixels(fromTex: TEX, toTex: TEX, index?: number) {
-        const currentPixelPushIndex = toTex.pixelPushIndex + 1
-        toTex.pixelPushIndex = currentPixelPushIndex
-        fromTex.canvas.toBlob(function(blob) {
-            if (currentPixelPushIndex != toTex.pixelPushIndex) { return; }
-            const image: TexImageSource = new Image(fromTex.resolution.width, fromTex.resolution.height)
-            image.src = URL.createObjectURL(blob)
-            image.onload = () => {
-                if (currentPixelPushIndex != toTex.pixelPushIndex) { return; }
-                var inputIndex: number = 0
-                if (index != null) {
-                    inputIndex = index!
-                } else {
-                    inputIndex = toTex.indexOfInput(fromTex)
-                }
-                toTex.createTexture(image, inputIndex!)
-                toTex.render()
-            }
-        });
+    pushPixels(fromTex: TEX, _toTex: TEX, index?: number) {
+        var inputIndex: number = 0
+        if (index != null) {
+            inputIndex = index!
+        } else {
+            inputIndex = this.indexOfInput(fromTex)
+        }
+        this.layout()
+        this.render()
     }
 
     indexOfInput(tex: TEX): number {
@@ -290,14 +308,14 @@ class TEX {
 
     public layout() {
         this.resolution = new Resolution(this.canvas.width, this.canvas.height)
-        // if (this.texture != null) {
-        //     this.gl.deleteTexture(this.texture)
-        // }
-        // this.texture = this.createTexture(this.gl, this.resolution)
-        // if (this.framebuffer != null) {
-        //     this.gl.deleteFramebuffer(this.framebuffer)
-        // }
-        // this.framebuffer = this.createFramebuffer(this.gl, this.texture)
+        if (this.texture != null) {
+            this.gl.deleteTexture(this.texture)
+        }
+        this.texture = this.createEmptyTexture(this.gl, this.resolution)
+        if (this.framebuffer != null) {
+            this.gl.deleteFramebuffer(this.framebuffer)
+        }
+        this.framebuffer = this.createFramebuffer(this.gl, this.texture)
     }
 
     // Render
@@ -345,7 +363,6 @@ class TEX {
         }
 
         // Global Resolution
-
         let resolutionLocation: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, "u_resolution")!
         this.gl.uniform2i(resolutionLocation, this.resolution.width, this.resolution.height)
         
@@ -488,6 +505,7 @@ class ImageTEX extends TEXResource {
     }
 
 }
+module.exports = ImageTEX;
 
 // TEX Generator
 
@@ -546,6 +564,7 @@ class CircleTEX extends TEXGenerator {
     }
 
 }
+module.exports = CircleTEX
 
 class PolygonTEX extends TEXGenerator {
 
@@ -595,6 +614,7 @@ class PolygonTEX extends TEXGenerator {
     }
 
 }
+module.exports = PolygonTEX
 
 class NoiseTEX extends TEXGenerator {
     
@@ -644,6 +664,7 @@ class NoiseTEX extends TEXGenerator {
     }
 
 }
+module.exports = NoiseTEX
 
 enum GradientDirection {
     horizontal = 0,
@@ -651,6 +672,7 @@ enum GradientDirection {
     radial = 2,
     angle = 3,
 }
+module.exports = GradientDirection
 
 enum GradientExtend {
     zero = 0,
@@ -658,6 +680,7 @@ enum GradientExtend {
     loop = 2,
     mirror = 3,
 }
+module.exports = GradientExtend
 
 class GradientColorStop {
     stop: number;
@@ -667,6 +690,7 @@ class GradientColorStop {
         this.color = color
     }
 }
+module.exports = GradientColorStop
 
 class GradientTEX extends TEXGenerator {
 
@@ -724,6 +748,7 @@ class GradientTEX extends TEXGenerator {
     }
 
 }
+module.exports = GradientTEX
 
 // TEX Effect
 
@@ -809,6 +834,7 @@ class ColorShiftTEX extends TEXEffect {
     }
 
 }
+module.exports = ColorShiftTEX
 
 // TEX Merge Effect
 
@@ -892,3 +918,4 @@ class BlendTEX extends TEXMergeEffect {
     }
 
 }
+module.exports = BlendTEX

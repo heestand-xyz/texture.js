@@ -21,10 +21,11 @@ resize()
 
 
 const gradientTex = new GradientTEX(canvasOne)
+gradientTex.direction = GradientDirection.horizontal
 
 const polygonTex = new PolygonTEX(canvasTwo)
-polygonTex.radius = 1.0 / 3.0
-polygonTex.cornerRadius = 0.05
+// polygonTex.radius = 1.0 / 3.0
+// polygonTex.cornerRadius = 0.05
 
 // const imageTex = new ImageTEX(canvasThree)
 // let image = new Image();
@@ -41,21 +42,24 @@ blendTex.inputB = polygonTex
 // colorShiftTex.input = blendTex
 // colorShiftTex.saturation = 2.0
 
+// gradientTex.render()
+// polygonTex.render()
+// setTimeout(function(){ gradientTex.render() }, 100);
 
 // Mouse Over
 
-canvasOne.addEventListener('mousemove', e => {
-    const x = e.offsetX / canvasTwo.clientWidth;
-    const y = e.offsetY / canvasTwo.clientHeight;
-    noiseTex.zPosition = x
-})
+// canvasOne.addEventListener('mousemove', e => {
+//     const x = e.offsetX / canvasTwo.clientWidth;
+//     const y = e.offsetY / canvasTwo.clientHeight;
+//     noiseTex.zPosition = x
+// })
 
-canvasTwo.addEventListener('mousemove', e => {
-    const x = e.offsetX / canvasTwo.clientWidth;
-    const y = e.offsetY / canvasTwo.clientHeight;
-    polygonTex.rotation = (x - 0.5) * 0.25
-    polygonTex.cornerRadius = y * 0.1
-})
+// canvasTwo.addEventListener('mousemove', e => {
+//     const x = e.offsetX / canvasTwo.clientWidth;
+//     const y = e.offsetY / canvasTwo.clientHeight;
+//     polygonTex.rotation = (x - 0.5) * 0.25
+//     polygonTex.cornerRadius = y * 0.1
+// })
 
 // canvasFour.addEventListener('mousemove', e => {
 //     const x = e.offsetX / canvasFour.clientWidth;
@@ -68,7 +72,7 @@ canvasTwo.addEventListener('mousemove', e => {
 
 // canvasThree.addEventListener('click', e => {
 //     // console.log("click on three")
-//     circleTex.render()
+//     gradientTex.render()
 // })
 
 // Window Resize

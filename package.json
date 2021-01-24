@@ -1,4 +1,6 @@
 {
+  "name": "texture.js",
+  "version": "0.1.0",
   "devDependencies": {
     "@types/node": "^14.14.21",
     "typedoc": "^0.20.16",

@@ -25,6 +25,7 @@ var Color = /** @class */ (function () {
     Color.white = new Color(1.0, 1.0, 1.0, 1.0);
     return Color;
 }());
+module.exports = Color;
 var Position = /** @class */ (function () {
     function Position(x, y) {
         this.x = x;
@@ -32,6 +33,7 @@ var Position = /** @class */ (function () {
     }
     return Position;
 }());
+module.exports = Position;
 var Resolution = /** @class */ (function () {
     function Resolution(width, height) {
         this.width = width;
@@ -39,6 +41,7 @@ var Resolution = /** @class */ (function () {
     }
     return Resolution;
 }());
+module.exports = Resolution;
 // TEX
 var TEX = /** @class */ (function () {
     function TEX(shaderName, canvas) {
@@ -53,8 +56,6 @@ var TEX = /** @class */ (function () {
         this.uniformColors = function _() { return {}; };
         this.uniformArrayOfFloats = function _() { return {}; };
         this.uniformArrayOfColors = function _() { return {}; };
-        // Push Pixels
-        this.pixelPushIndex = 0;
         this.shaderName = shaderName;
         this.canvas = canvas;
         this.gl = this.canvas.getContext("webgl");
@@ -136,39 +137,43 @@ var TEX = /** @class */ (function () {
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
         return positionBuffer;
     };
-    // createTexture(gl: WebGLRenderingContext, resolution: Resolution, level: number = 0): WebGLTexture {
-    //     const targetTexture = gl.createTexture()!;
-    //     gl.bindTexture(gl.TEXTURE_2D, targetTexture);
-    //     {
-    //         const internalFormat = gl.RGBA;
-    //         const border = 0;
-    //         const format = gl.RGBA;
-    //         const type = gl.UNSIGNED_BYTE;
-    //         const data = null;
-    //         gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, resolution.width, resolution.height, border, format, type, data);
-    //         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    //         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    //         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    //     }
-    //     return targetTexture
-    // }
-    // createFramebuffer(gl: WebGLRenderingContext, texture: WebGLTexture, level: number = 0): WebGLFramebuffer {
-    //     const framebuffer: WebGLFramebuffer = gl.createFramebuffer()!;
-    //     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-    //     const attachmentPoint = gl.COLOR_ATTACHMENT0;
-    //     gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, texture, level);
-    //     return framebuffer
-    // }
-    TEX.prototype.createTexture = function (image, index) {
-        // console.log(this.shaderName + " - " + "createTextureFrom image index:", index)
+    TEX.prototype.createEmptyTexture = function (gl, resolution) {
+        var emptyTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, emptyTexture);
+        {
+            var internalFormat = gl.RGBA;
+            var border = 0;
+            var level = 0;
+            var format = gl.RGBA;
+            var type = gl.UNSIGNED_BYTE;
+            var data = null;
+            gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, resolution.width, resolution.height, border, format, type, data);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        }
+        return emptyTexture;
+    };
+    TEX.prototype.createFramebuffer = function (gl, texture, index) {
         if (index === void 0) { index = 0; }
-        var texture = this.gl.createTexture();
+        var framebuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+        var attachmentPoint = gl.COLOR_ATTACHMENT0;
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, texture, 0);
+        return framebuffer;
+    };
+    TEX.prototype.activateTexture = function (texture, index) {
         if (index == 0) {
             this.gl.activeTexture(this.gl.TEXTURE0);
         }
         else if (index == 1) {
             this.gl.activeTexture(this.gl.TEXTURE1);
         }
+    };
+    TEX.prototype.createTexture = function (image, index) {
+        if (index === void 0) { index = 0; }
+        var texture = this.gl.createTexture();
+        this.activateTexture(texture, index);
         this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
         var level = 0;
         var format = this.gl.RGBA;
@@ -181,37 +186,45 @@ var TEX = /** @class */ (function () {
         return texture;
     };
     TEX.prototype.clear = function (gl) {
-        gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
-        gl.clearDepth(1.0); // Clear everything
-        gl.enable(gl.DEPTH_TEST); // Enable depth testing
-        gl.depthFunc(gl.LEQUAL); // Near things obscure far things
-        // Clear the canvas before we start drawing on it.
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clearDepth(1.0);
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     };
-    TEX.prototype.pushPixels = function (fromTex, toTex, index) {
-        var currentPixelPushIndex = toTex.pixelPushIndex + 1;
-        toTex.pixelPushIndex = currentPixelPushIndex;
-        fromTex.canvas.toBlob(function (blob) {
-            if (currentPixelPushIndex != toTex.pixelPushIndex) {
-                return;
-            }
-            var image = new Image(fromTex.resolution.width, fromTex.resolution.height);
-            image.src = URL.createObjectURL(blob);
-            image.onload = function () {
-                if (currentPixelPushIndex != toTex.pixelPushIndex) {
-                    return;
-                }
-                var inputIndex = 0;
-                if (index != null) {
-                    inputIndex = index;
-                }
-                else {
-                    inputIndex = toTex.indexOfInput(fromTex);
-                }
-                toTex.createTexture(image, inputIndex);
-                toTex.render();
-            };
-        });
+    // Push Pixels
+    // pixelPushIndex: number = 0
+    // 
+    // pushPixels(fromTex: TEX, toTex: TEX, index?: number) {
+    //     const currentPixelPushIndex = toTex.pixelPushIndex + 1
+    //     toTex.pixelPushIndex = currentPixelPushIndex
+    //     fromTex.canvas.toBlob(function(blob) {
+    //         if (currentPixelPushIndex != toTex.pixelPushIndex) { return; }
+    //         const image: TexImageSource = new Image(fromTex.resolution.width, fromTex.resolution.height)
+    //         image.src = URL.createObjectURL(blob)
+    //         image.onload = () => {
+    //             if (currentPixelPushIndex != toTex.pixelPushIndex) { return; }
+    //             var inputIndex: number = 0
+    //             if (index != null) {
+    //                 inputIndex = index!
+    //             } else {
+    //                 inputIndex = toTex.indexOfInput(fromTex)
+    //             }
+    //             toTex.createTexture(image, inputIndex!)
+    //             toTex.render()
+    //         }
+    //     });
+    // }
+    TEX.prototype.pushPixels = function (fromTex, _toTex, index) {
+        var inputIndex = 0;
+        if (index != null) {
+            inputIndex = index;
+        }
+        else {
+            inputIndex = this.indexOfInput(fromTex);
+        }
+        this.layout();
+        this.render();
     };
     TEX.prototype.indexOfInput = function (tex) {
         for (var index = 0; index < this.inputs.length; index++) {
@@ -225,14 +238,14 @@ var TEX = /** @class */ (function () {
     // Layout
     TEX.prototype.layout = function () {
         this.resolution = new Resolution(this.canvas.width, this.canvas.height);
-        // if (this.texture != null) {
-        //     this.gl.deleteTexture(this.texture)
-        // }
-        // this.texture = this.createTexture(this.gl, this.resolution)
-        // if (this.framebuffer != null) {
-        //     this.gl.deleteFramebuffer(this.framebuffer)
-        // }
-        // this.framebuffer = this.createFramebuffer(this.gl, this.texture)
+        if (this.texture != null) {
+            this.gl.deleteTexture(this.texture);
+        }
+        this.texture = this.createEmptyTexture(this.gl, this.resolution);
+        if (this.framebuffer != null) {
+            this.gl.deleteFramebuffer(this.framebuffer);
+        }
+        this.framebuffer = this.createFramebuffer(this.gl, this.texture);
     };
     // Render
     TEX.prototype.render = function () {
@@ -386,6 +399,7 @@ var ImageTEX = /** @class */ (function (_super) {
     };
     return ImageTEX;
 }(TEXResource));
+module.exports = ImageTEX;
 // TEX Generator
 var TEXGenerator = /** @class */ (function (_super) {
     __extends(TEXGenerator, _super);
@@ -449,6 +463,7 @@ var CircleTEX = /** @class */ (function (_super) {
     });
     return CircleTEX;
 }(TEXGenerator));
+module.exports = CircleTEX;
 var PolygonTEX = /** @class */ (function (_super) {
     __extends(PolygonTEX, _super);
     // _antiAliased: boolean = true
@@ -506,6 +521,7 @@ var PolygonTEX = /** @class */ (function (_super) {
     });
     return PolygonTEX;
 }(TEXGenerator));
+module.exports = PolygonTEX;
 var NoiseTEX = /** @class */ (function (_super) {
     __extends(NoiseTEX, _super);
     function NoiseTEX(canvas) {
@@ -567,6 +583,7 @@ var NoiseTEX = /** @class */ (function (_super) {
     });
     return NoiseTEX;
 }(TEXGenerator));
+module.exports = NoiseTEX;
 var GradientDirection;
 (function (GradientDirection) {
     GradientDirection[GradientDirection["horizontal"] = 0] = "horizontal";
@@ -574,6 +591,7 @@ var GradientDirection;
     GradientDirection[GradientDirection["radial"] = 2] = "radial";
     GradientDirection[GradientDirection["angle"] = 3] = "angle";
 })(GradientDirection || (GradientDirection = {}));
+module.exports = GradientDirection;
 var GradientExtend;
 (function (GradientExtend) {
     GradientExtend[GradientExtend["zero"] = 0] = "zero";
@@ -581,6 +599,7 @@ var GradientExtend;
     GradientExtend[GradientExtend["loop"] = 2] = "loop";
     GradientExtend[GradientExtend["mirror"] = 3] = "mirror";
 })(GradientExtend || (GradientExtend = {}));
+module.exports = GradientExtend;
 var GradientColorStop = /** @class */ (function () {
     function GradientColorStop(stop, color) {
         this.stop = stop;
@@ -588,6 +607,7 @@ var GradientColorStop = /** @class */ (function () {
     }
     return GradientColorStop;
 }());
+module.exports = GradientColorStop;
 var GradientTEX = /** @class */ (function (_super) {
     __extends(GradientTEX, _super);
     // var colorStops: [ColorStop]
@@ -656,6 +676,7 @@ var GradientTEX = /** @class */ (function (_super) {
     });
     return GradientTEX;
 }(TEXGenerator));
+module.exports = GradientTEX;
 // TEX Effect
 var TEXEffect = /** @class */ (function (_super) {
     __extends(TEXEffect, _super);
@@ -741,6 +762,7 @@ var ColorShiftTEX = /** @class */ (function (_super) {
     });
     return ColorShiftTEX;
 }(TEXEffect));
+module.exports = ColorShiftTEX;
 // TEX Merge Effect
 var TEXMergeEffect = /** @class */ (function (_super) {
     __extends(TEXMergeEffect, _super);
@@ -818,3 +840,4 @@ var BlendTEX = /** @class */ (function (_super) {
     }
     return BlendTEX;
 }(TEXMergeEffect));
+module.exports = BlendTEX;

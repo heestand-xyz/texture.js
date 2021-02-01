@@ -105,6 +105,7 @@ var RenderTarget = /** @class */ (function () {
         // });
     };
     RenderTarget.prototype.renderTo = function (tex, framebuffer) {
+        var _a;
         this.clear(this.gl);
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, framebuffer);
         // Prep
@@ -125,8 +126,9 @@ var RenderTarget = /** @class */ (function () {
             tex.subRender(this.gl, this.shaderProgram);
         }
         // Global Resolution
+        var resolution = (_a = tex.chainResolution) !== null && _a !== void 0 ? _a : new TEXResolution(this.canvas.width, this.canvas.height);
         var resolutionLocation = this.gl.getUniformLocation(this.shaderProgram, "u_resolution");
-        this.gl.uniform2i(resolutionLocation, tex.chainResolution.width, tex.chainResolution.height);
+        this.gl.uniform2i(resolutionLocation, resolution.width, resolution.height);
         // Bools
         var uniformBools = tex.uniformBools();
         for (var key in uniformBools) {
@@ -239,7 +241,7 @@ var TEX = /** @class */ (function () {
                     return effectTex.inputs[0].chainResolution;
                 }
             }
-            return new TEXResolution(100, 100);
+            return null;
         },
         enumerable: false,
         configurable: true

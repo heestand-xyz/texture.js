@@ -12,7 +12,7 @@ class TEX {
     inputs: TEX[] = []
     outputs: TEX[] = []
 
-    public get chainResolution(): TEXResolution {
+    public get chainResolution(): TEXResolution | null {
         if (this instanceof TEXContent) {
             let contentTex = this as TEXContent
             if (contentTex.resolution != null) {
@@ -24,7 +24,7 @@ class TEX {
                 return effectTex.inputs[0].chainResolution
             }
         }
-        return new TEXResolution(100, 100)
+        return null
     }
 
     uniformBools: () => Record<string, boolean> = function _(): Record<string, boolean> { return {} }

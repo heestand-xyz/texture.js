@@ -168,8 +168,9 @@ class RenderTarget {
         }
 
         // Global Resolution
+        let resolution: TEXResolution = tex.chainResolution ?? new TEXResolution(this.canvas.width, this.canvas.height)
         let resolutionLocation: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, "u_resolution")!
-        this.gl.uniform2i(resolutionLocation, tex.chainResolution.width, tex.chainResolution.height)
+        this.gl.uniform2i(resolutionLocation, resolution.width, resolution.height)
         
         // Bools
         const uniformBools: Record<string, boolean> = tex.uniformBools();

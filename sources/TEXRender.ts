@@ -1,5 +1,5 @@
 
-class RenderTarget {
+class TEXRender {
 
     tex: TEX
 
@@ -12,37 +12,18 @@ class RenderTarget {
     constructor(tex: TEX, canvas: HTMLCanvasElement) {
 
         this.tex = tex
+        tex.render = this
 
         this.canvas = canvas
         
         this.gl = this.canvas.getContext("webgl")!
 
-        this.load(tex.shaderPath, (source: string) : void => {
+        tex.loadShader((source: string) : void => {
+            console.log(this.tex.constructor.name + " (Render) - " + "Loaded")
             this.setup(source)
-            this.render()    
+            this.draw()    
         })
 
-    }
-
-    // Load
-
-    load(shaderPath: string, loaded: (_: string) => (void)) {
-        var path: string = "";
-        if (TEX.shaderFolder != null) {
-            path = TEX.shaderFolder! + shaderPath
-        } else {
-            path = onlineShaderSourceFolderURL + shaderPath
-        }
-        var rawFile = new XMLHttpRequest();
-        rawFile.open("GET", path, false);
-        rawFile.onreadystatechange = function () {
-            if(rawFile.readyState === 4) {
-                if(rawFile.status === 200 || rawFile.status == 0) {
-                    loaded(rawFile.responseText)
-                }
-            }
-        }
-        rawFile.send(null);
     }
 
     // Setup
@@ -125,22 +106,23 @@ class RenderTarget {
 
     // Render
 
-    public render() {
-        // console.log(this.shaderPath + " - " + "render")
+    public draw() {
+        console.log(this.tex.constructor.name + " (Render) - " + "Draw")
+        // console.log(this.shaderPath + " - " + "draw")
         // this.renderTo(this.framebuffer)
-        this.renderTo(this.tex, null)
+        this.drawTo(this.tex, null)
         // this.tex.outputs.forEach(output => {
         //     output.pushPixels(this, output)
         // });
     }
     
-    renderTo(tex: TEX, framebuffer: WebGLFramebuffer | null) {
+    drawTo(tex: TEX, framebuffer: WebGLFramebuffer | null) {
 
         this.clear(this.gl)
 
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, framebuffer);
 
-        // Prep
+        // Vertex
         
         {
             const numComponents = 2;  // pull out 2 values per iteration
@@ -161,8 +143,12 @@ class RenderTarget {
             this.gl.enableVertexAttribArray(attribPosition);
         }
 
+        // Program
+        
         this.gl.useProgram(this.shaderProgram);
 
+        // Sub Render
+        
         if (tex.subRender != undefined) {
             tex.subRender!(this.gl, this.shaderProgram);
         }

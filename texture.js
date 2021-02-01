@@ -12,39 +12,21 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-var RenderTarget = /** @class */ (function () {
-    function RenderTarget(tex, canvas) {
+var TEXRender = /** @class */ (function () {
+    function TEXRender(tex, canvas) {
         var _this = this;
         this.tex = tex;
+        tex.render = this;
         this.canvas = canvas;
         this.gl = this.canvas.getContext("webgl");
-        this.load(tex.shaderPath, function (source) {
+        tex.loadShader(function (source) {
+            console.log(_this.tex.constructor.name + " (Render) - " + "Loaded");
             _this.setup(source);
-            _this.render();
+            _this.draw();
         });
     }
-    // Load
-    RenderTarget.prototype.load = function (shaderPath, loaded) {
-        var path = "";
-        if (TEX.shaderFolder != null) {
-            path = TEX.shaderFolder + shaderPath;
-        }
-        else {
-            path = onlineShaderSourceFolderURL + shaderPath;
-        }
-        var rawFile = new XMLHttpRequest();
-        rawFile.open("GET", path, false);
-        rawFile.onreadystatechange = function () {
-            if (rawFile.readyState === 4) {
-                if (rawFile.status === 200 || rawFile.status == 0) {
-                    loaded(rawFile.responseText);
-                }
-            }
-        };
-        rawFile.send(null);
-    };
     // Setup
-    RenderTarget.prototype.setup = function (fragmentShaderSource) {
+    TEXRender.prototype.setup = function (fragmentShaderSource) {
         var vertexShaderSource = "attribute vec4 position; void main() { gl_Position = position; }";
         var vertexShader = this.createShader(this.gl, vertexShaderSource, this.gl.VERTEX_SHADER);
         var fragmentShader = this.createShader(this.gl, fragmentShaderSource, this.gl.FRAGMENT_SHADER);
@@ -52,7 +34,7 @@ var RenderTarget = /** @class */ (function () {
         this.quadBuffer = this.createQuadBuffer(this.gl);
     };
     // Create
-    RenderTarget.prototype.createShader = function (gl, sourceCode, type) {
+    TEXRender.prototype.createShader = function (gl, sourceCode, type) {
         var shader = gl.createShader(type);
         gl.shaderSource(shader, sourceCode);
         gl.compileShader(shader);
@@ -64,7 +46,7 @@ var RenderTarget = /** @class */ (function () {
         }
         return shader;
     };
-    RenderTarget.prototype.createProgram = function (gl, vertexShader, fragmentShader) {
+    TEXRender.prototype.createProgram = function (gl, vertexShader, fragmentShader) {
         var shaderProgram = gl.createProgram();
         gl.attachShader(shaderProgram, vertexShader);
         gl.attachShader(shaderProgram, fragmentShader);
@@ -76,7 +58,7 @@ var RenderTarget = /** @class */ (function () {
         }
         return shaderProgram;
     };
-    RenderTarget.prototype.createQuadBuffer = function (gl) {
+    TEXRender.prototype.createQuadBuffer = function (gl) {
         // Create a buffer for the square's positions.
         var positionBuffer = gl.createBuffer();
         // Select the positionBuffer as the one to apply buffer
@@ -96,19 +78,20 @@ var RenderTarget = /** @class */ (function () {
         return positionBuffer;
     };
     // Render
-    RenderTarget.prototype.render = function () {
-        // console.log(this.shaderPath + " - " + "render")
+    TEXRender.prototype.draw = function () {
+        console.log(this.tex.constructor.name + " (Render) - " + "Draw");
+        // console.log(this.shaderPath + " - " + "draw")
         // this.renderTo(this.framebuffer)
-        this.renderTo(this.tex, null);
+        this.drawTo(this.tex, null);
         // this.tex.outputs.forEach(output => {
         //     output.pushPixels(this, output)
         // });
     };
-    RenderTarget.prototype.renderTo = function (tex, framebuffer) {
+    TEXRender.prototype.drawTo = function (tex, framebuffer) {
         var _a;
         this.clear(this.gl);
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, framebuffer);
-        // Prep
+        // Vertex
         {
             var numComponents = 2; // pull out 2 values per iteration
             var type = this.gl.FLOAT; // the data in the buffer is 32bit floats
@@ -121,7 +104,9 @@ var RenderTarget = /** @class */ (function () {
             this.gl.vertexAttribPointer(attribPosition, numComponents, type, normalize, stride, offset);
             this.gl.enableVertexAttribArray(attribPosition);
         }
+        // Program
         this.gl.useProgram(this.shaderProgram);
+        // Sub Render
         if (tex.subRender != undefined) {
             tex.subRender(this.gl, this.shaderProgram);
         }
@@ -203,14 +188,14 @@ var RenderTarget = /** @class */ (function () {
         }
     };
     // Clear
-    RenderTarget.prototype.clear = function (gl) {
+    TEXRender.prototype.clear = function (gl) {
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clearDepth(1.0);
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     };
-    return RenderTarget;
+    return TEXRender;
 }());
 var onlineShaderSourceFolderURL = "https://heestand-xyz.github.io/texture.js/sources/shaders/";
 var TEX = /** @class */ (function () {
@@ -225,6 +210,7 @@ var TEX = /** @class */ (function () {
         this.uniformColors = function _() { return {}; };
         this.uniformArrayOfFloats = function _() { return {}; };
         this.uniformArrayOfColors = function _() { return {}; };
+        console.log(this.constructor.name + " - " + "Created");
         this.shaderPath = shaderPath;
     }
     Object.defineProperty(TEX.prototype, "chainResolution", {
@@ -247,9 +233,34 @@ var TEX = /** @class */ (function () {
         configurable: true
     });
     TEX.prototype.refreshInputs = function () {
+        console.log(this.constructor.name + " - " + "Refresh Inputs");
+        console.log();
         this.refresh();
     };
     TEX.prototype.refresh = function () {
+        var _a;
+        console.log(this.constructor.name + " - " + "Refresh");
+        (_a = this.render) === null || _a === void 0 ? void 0 : _a.draw();
+    };
+    // Load
+    TEX.prototype.loadShader = function (loaded) {
+        var path = "";
+        if (TEX.shaderFolder != null) {
+            path = TEX.shaderFolder + this.shaderPath;
+        }
+        else {
+            path = onlineShaderSourceFolderURL + this.shaderPath;
+        }
+        var rawFile = new XMLHttpRequest();
+        rawFile.open("GET", path, false);
+        rawFile.onreadystatechange = function () {
+            if (rawFile.readyState === 4) {
+                if (rawFile.status === 200 || rawFile.status == 0) {
+                    loaded(rawFile.responseText);
+                }
+            }
+        };
+        rawFile.send(null);
     };
     return TEX;
 }());

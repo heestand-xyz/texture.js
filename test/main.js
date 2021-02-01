@@ -25,18 +25,21 @@ gradientTex.colorStops = [
     new GradientColorStop(0.0, TEXColor.black),
     new GradientColorStop(1.0, new TEXColor(0.0, 0.5, 1.0))
 ]
-const renderTargetOne = new RenderTarget(gradientTex, canvasOne)
+new TEXRender(gradientTex, canvasOne)
 
-const polygonTex = new PolygonTEX(canvasTwo)
+const polygonTex = new PolygonTEX()
 polygonTex.color = new TEXColor(1.0, 0.5, 0.0)
+new TEXRender(polygonTex, canvasTwo)
 
-const blendTex = new BlendTEX(canvasThree)
+const blendTex = new BlendTEX()
 blendTex.inputA = gradientTex
 blendTex.inputB = polygonTex
+new TEXRender(blendTex, canvasThree)
 
-const colorShiftTex = new ColorShiftTEX(canvasFour)
+const colorShiftTex = new ColorShiftTEX()
 colorShiftTex.input = blendTex
 colorShiftTex.saturation = 2.0
+new TEXRender(colorShiftTex, canvasFour)
 
 // const imageTex = new ImageTEX(canvasThree)
 // imageTex.loadImageURL("http://heestand.xyz/assets/images/kite.jpg")

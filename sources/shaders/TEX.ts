@@ -39,20 +39,48 @@ class TEX {
 
     subRender?: (gl: WebGLRenderingContext, program: WebGLProgram) => void
 
+    render?: TEXRender
+
     constructor(shaderPath: string) {
+        
+        console.log(this.constructor.name + " - " + "Created")
 
         this.shaderPath = shaderPath
 
     }
 
     refreshInputs() {
+        console.log(this.constructor.name + " - " + "Refresh Inputs")
+        console.log()
         this.refresh()
     }
 
     refresh() {
-        
+        console.log(this.constructor.name + " - " + "Refresh")
+        this.render?.draw()
     }
     
+    // Load
+
+    loadShader(loaded: (_: string) => (void)) {
+        var path: string = "";
+        if (TEX.shaderFolder != null) {
+            path = TEX.shaderFolder! + this.shaderPath
+        } else {
+            path = onlineShaderSourceFolderURL + this.shaderPath
+        }
+        var rawFile = new XMLHttpRequest();
+        rawFile.open("GET", path, false);
+        rawFile.onreadystatechange = function () {
+            if(rawFile.readyState === 4) {
+                if(rawFile.status === 200 || rawFile.status == 0) {
+                    loaded(rawFile.responseText)
+                }
+            }
+        }
+        rawFile.send(null);
+    }
+
     // createEmptyTexture(gl: WebGLRenderingContext, resolution: TEXResolution): WebGLTexture {
     //     const emptyTexture = gl.createTexture()!;
     //     gl.bindTexture(gl.TEXTURE_2D, emptyTexture);

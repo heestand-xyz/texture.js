@@ -12,39 +12,9 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-var onlineShaderFolderURL = "https://heestand-xyz.github.io/texture.js/shaders/";
-var Color = /** @class */ (function () {
-    function Color(red, green, blue, alpha) {
-        this.red = red;
-        this.green = green;
-        this.blue = blue;
-        this.alpha = alpha;
-    }
-    Color.clear = new Color(0.0, 0.0, 0.0, 0.0);
-    Color.black = new Color(0.0, 0.0, 0.0, 1.0);
-    Color.white = new Color(1.0, 1.0, 1.0, 1.0);
-    return Color;
-}());
-module.exports = Color;
-var Position = /** @class */ (function () {
-    function Position(x, y) {
-        this.x = x;
-        this.y = y;
-    }
-    return Position;
-}());
-module.exports = Position;
-var Resolution = /** @class */ (function () {
-    function Resolution(width, height) {
-        this.width = width;
-        this.height = height;
-    }
-    return Resolution;
-}());
-module.exports = Resolution;
-// TEX
+var onlineShaderSourceFolderURL = "https://heestand-xyz.github.io/texture.js/sources/shaders/";
 var TEX = /** @class */ (function () {
-    function TEX(shaderName, canvas) {
+    function TEX(shaderPath, canvas) {
         var _this = this;
         this.inputs = [];
         this.outputs = [];
@@ -56,23 +26,23 @@ var TEX = /** @class */ (function () {
         this.uniformColors = function _() { return {}; };
         this.uniformArrayOfFloats = function _() { return {}; };
         this.uniformArrayOfColors = function _() { return {}; };
-        this.shaderName = shaderName;
+        this.shaderPath = shaderPath;
         this.canvas = canvas;
         this.gl = this.canvas.getContext("webgl");
         this.layout();
-        this.load(shaderName, function (source) {
+        this.load(shaderPath, function (source) {
             _this.setup(source);
             _this.render();
         });
     }
     // Setup
-    TEX.prototype.load = function (shaderName, loaded) {
+    TEX.prototype.load = function (shaderPath, loaded) {
         var path = "";
         if (TEX.shaderFolder != null) {
-            path = TEX.shaderFolder + shaderName + ".glsl";
+            path = TEX.shaderFolder + shaderPath;
         }
         else {
-            path = onlineShaderFolderURL + shaderName + ".glsl";
+            path = onlineShaderSourceFolderURL + shaderPath;
         }
         var rawFile = new XMLHttpRequest();
         rawFile.open("GET", path, false);
@@ -237,7 +207,7 @@ var TEX = /** @class */ (function () {
     };
     // Layout
     TEX.prototype.layout = function () {
-        this.resolution = new Resolution(this.canvas.width, this.canvas.height);
+        this.resolution = new TEXResolution(this.canvas.width, this.canvas.height);
         if (this.texture != null) {
             this.gl.deleteTexture(this.texture);
         }
@@ -250,7 +220,7 @@ var TEX = /** @class */ (function () {
     // Render
     TEX.prototype.render = function () {
         var _this = this;
-        // console.log(this.shaderName + " - " + "render")
+        // console.log(this.shaderPath + " - " + "render")
         // this.renderTo(this.framebuffer)
         this.renderTo(null);
         this.outputs.forEach(function (output) {
@@ -355,59 +325,13 @@ var TEX = /** @class */ (function () {
     };
     return TEX;
 }());
-// TEX Resource
-var TEXResource = /** @class */ (function (_super) {
-    __extends(TEXResource, _super);
-    function TEXResource(shaderName, canvas) {
-        var _this = _super.call(this, shaderName, canvas) || this;
-        _this.subRender = function _() {
-            // Sampler
-            var samplerLocation = this.gl.getUniformLocation(this.shaderProgram, 'u_sampler');
-            this.gl.uniform1i(samplerLocation, 0);
-        };
-        return _this;
-    }
-    return TEXResource;
-}(TEX));
-var ImageTEX = /** @class */ (function (_super) {
-    __extends(ImageTEX, _super);
-    function ImageTEX(canvas, image) {
-        var _this = _super.call(this, "ImageTEX", canvas) || this;
-        _this._imageResolution = null;
-        _this.image = image;
-        _this.uniformResolutions = function _() {
-            var _a;
-            var uniforms = {};
-            uniforms["u_imageResolution"] = (_a = this.imageResolution) !== null && _a !== void 0 ? _a : new Resolution(1, 1);
-            return uniforms;
-        };
-        if (image != null) {
-            _this.loadImage(image);
-        }
-        return _this;
-    }
-    Object.defineProperty(ImageTEX.prototype, "imageResolution", {
-        get: function () { return this._imageResolution; },
-        set: function (value) { this._imageResolution = value; _super.prototype.render.call(this); },
-        enumerable: false,
-        configurable: true
-    });
-    ImageTEX.prototype.loadImage = function (image) {
-        this.imageResolution = new Resolution(image.width, image.height);
-        this.resourceTexture = this.createTexture(image);
-        _super.prototype.render.call(this);
-    };
-    return ImageTEX;
-}(TEXResource));
-module.exports = ImageTEX;
-// TEX Generator
 var TEXGenerator = /** @class */ (function (_super) {
     __extends(TEXGenerator, _super);
     function TEXGenerator(shaderName, canvas) {
         var _this = _super.call(this, shaderName, canvas) || this;
-        _this._backgroundColor = new Color(0.0, 0.0, 0.0, 1.0);
-        _this._color = new Color(1.0, 1.0, 1.0, 1.0);
-        _this._position = new Position(0.0, 0.0);
+        _this._backgroundColor = new TEXColor(0.0, 0.0, 0.0, 1.0);
+        _this._color = new TEXColor(1.0, 1.0, 1.0, 1.0);
+        _this._position = new TEXPosition(0.0, 0.0);
         _this.uniformPositions = function _() {
             var uniforms = {};
             uniforms["u_position"] = this.position;
@@ -445,7 +369,7 @@ var TEXGenerator = /** @class */ (function (_super) {
 var CircleTEX = /** @class */ (function (_super) {
     __extends(CircleTEX, _super);
     function CircleTEX(canvas) {
-        var _this = _super.call(this, "CircleTEX", canvas) || this;
+        var _this = _super.call(this, "content/generator/circle/CircleTEX.glsl", canvas) || this;
         _this._radius = 0.25;
         _this.uniformFloats = function _() {
             var uniforms = {};
@@ -463,127 +387,7 @@ var CircleTEX = /** @class */ (function (_super) {
     });
     return CircleTEX;
 }(TEXGenerator));
-module.exports = CircleTEX;
-var PolygonTEX = /** @class */ (function (_super) {
-    __extends(PolygonTEX, _super);
-    // _antiAliased: boolean = true
-    // public get antiAliased(): boolean { return this._antiAliased }
-    // public set antiAliased(value: boolean) { this._antiAliased = value; super.render(); }
-    function PolygonTEX(canvas) {
-        var _this = _super.call(this, "PolygonTEX", canvas) || this;
-        _this._radius = 0.25;
-        _this._rotation = 0.0;
-        _this._vertexCount = 3;
-        _this._cornerRadius = 0.0;
-        _this.uniformFloats = function _() {
-            var uniforms = {};
-            uniforms["u_radius"] = this.radius;
-            uniforms["u_rotation"] = this.rotation;
-            uniforms["u_cornerRadius"] = this.cornerRadius;
-            return uniforms;
-        };
-        _this.uniformInts = function _() {
-            var uniforms = {};
-            uniforms["u_vertexCount"] = this.vertexCount;
-            return uniforms;
-        };
-        // this.uniformBools = function _(): Record<string, boolean> {
-        //     let uniforms: Record<string, boolean> = {};
-        //     uniforms["u_antiAliased"] = this.antiAliased;
-        //     return uniforms
-        // }
-        _super.prototype.render.call(_this);
-        return _this;
-    }
-    Object.defineProperty(PolygonTEX.prototype, "radius", {
-        get: function () { return this._radius; },
-        set: function (value) { this._radius = value; _super.prototype.render.call(this); },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(PolygonTEX.prototype, "rotation", {
-        get: function () { return this._rotation; },
-        set: function (value) { this._rotation = value; _super.prototype.render.call(this); },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(PolygonTEX.prototype, "vertexCount", {
-        get: function () { return this._vertexCount; },
-        set: function (value) { this._vertexCount = value; _super.prototype.render.call(this); },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(PolygonTEX.prototype, "cornerRadius", {
-        get: function () { return this._cornerRadius; },
-        set: function (value) { this._cornerRadius = value; _super.prototype.render.call(this); },
-        enumerable: false,
-        configurable: true
-    });
-    return PolygonTEX;
-}(TEXGenerator));
-module.exports = PolygonTEX;
-var NoiseTEX = /** @class */ (function (_super) {
-    __extends(NoiseTEX, _super);
-    function NoiseTEX(canvas) {
-        var _this = _super.call(this, "NoiseTEX", canvas) || this;
-        _this._octaves = 1.0;
-        _this._persistence = 0.5;
-        _this._scale = 1.0;
-        _this._zPosition = 0.0;
-        _this._colored = false;
-        _this.uniformInts = function _() {
-            var uniforms = {};
-            uniforms["u_octaves"] = this.octaves;
-            return uniforms;
-        };
-        _this.uniformFloats = function _() {
-            var uniforms = {};
-            uniforms["u_persistence"] = this.persistence;
-            uniforms["u_scale"] = this.scale;
-            uniforms["u_zPosition"] = this.zPosition;
-            return uniforms;
-        };
-        _this.uniformBools = function _() {
-            var uniforms = {};
-            uniforms["u_colored"] = this.colored;
-            return uniforms;
-        };
-        _super.prototype.render.call(_this);
-        return _this;
-    }
-    Object.defineProperty(NoiseTEX.prototype, "octaves", {
-        get: function () { return this._octaves; },
-        set: function (value) { this._octaves = value; _super.prototype.render.call(this); },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(NoiseTEX.prototype, "persistence", {
-        get: function () { return this._persistence; },
-        set: function (value) { this._persistence = value; _super.prototype.render.call(this); },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(NoiseTEX.prototype, "scale", {
-        get: function () { return this._scale; },
-        set: function (value) { this._scale = value; _super.prototype.render.call(this); },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(NoiseTEX.prototype, "zPosition", {
-        get: function () { return this._zPosition; },
-        set: function (value) { this._zPosition = value; _super.prototype.render.call(this); },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(NoiseTEX.prototype, "colored", {
-        get: function () { return this._colored; },
-        set: function (value) { this._colored = value; _super.prototype.render.call(this); },
-        enumerable: false,
-        configurable: true
-    });
-    return NoiseTEX;
-}(TEXGenerator));
-module.exports = NoiseTEX;
+// module.exports = CircleTEX
 var GradientDirection;
 (function (GradientDirection) {
     GradientDirection[GradientDirection["horizontal"] = 0] = "horizontal";
@@ -591,7 +395,7 @@ var GradientDirection;
     GradientDirection[GradientDirection["radial"] = 2] = "radial";
     GradientDirection[GradientDirection["angle"] = 3] = "angle";
 })(GradientDirection || (GradientDirection = {}));
-module.exports = GradientDirection;
+// module.exports = GradientDirection
 var GradientExtend;
 (function (GradientExtend) {
     GradientExtend[GradientExtend["zero"] = 0] = "zero";
@@ -599,7 +403,7 @@ var GradientExtend;
     GradientExtend[GradientExtend["loop"] = 2] = "loop";
     GradientExtend[GradientExtend["mirror"] = 3] = "mirror";
 })(GradientExtend || (GradientExtend = {}));
-module.exports = GradientExtend;
+// module.exports = GradientExtend
 var GradientColorStop = /** @class */ (function () {
     function GradientColorStop(stop, color) {
         this.stop = stop;
@@ -607,17 +411,17 @@ var GradientColorStop = /** @class */ (function () {
     }
     return GradientColorStop;
 }());
-module.exports = GradientColorStop;
+// module.exports = GradientColorStop
 var GradientTEX = /** @class */ (function (_super) {
     __extends(GradientTEX, _super);
     // var colorStops: [ColorStop]
     function GradientTEX(canvas) {
-        var _this = _super.call(this, "GradientTEX", canvas) || this;
+        var _this = _super.call(this, "content/generator/gradient/GradientTEX.glsl", canvas) || this;
         _this._direction = GradientDirection.vertical;
         _this._scale = 1.0;
         _this._offset = 0.0;
         _this._extend = GradientExtend.mirror;
-        _this._colorStops = [new GradientColorStop(0.0, Color.black), new GradientColorStop(1.0, Color.white)];
+        _this._colorStops = [new GradientColorStop(0.0, TEXColor.black), new GradientColorStop(1.0, TEXColor.white)];
         _this.uniformInts = function _() {
             var uniforms = {};
             uniforms["u_direction"] = this.direction;
@@ -676,11 +480,130 @@ var GradientTEX = /** @class */ (function (_super) {
     });
     return GradientTEX;
 }(TEXGenerator));
-module.exports = GradientTEX;
-// TEX Effect
-var TEXEffect = /** @class */ (function (_super) {
-    __extends(TEXEffect, _super);
-    function TEXEffect(shaderName, canvas) {
+// module.exports = GradientTEX
+var NoiseTEX = /** @class */ (function (_super) {
+    __extends(NoiseTEX, _super);
+    function NoiseTEX(canvas) {
+        var _this = _super.call(this, "content/generator/noise/NoiseTEX.glsl", canvas) || this;
+        _this._octaves = 1.0;
+        _this._persistence = 0.5;
+        _this._scale = 1.0;
+        _this._zPosition = 0.0;
+        _this._colored = false;
+        _this.uniformInts = function _() {
+            var uniforms = {};
+            uniforms["u_octaves"] = this.octaves;
+            return uniforms;
+        };
+        _this.uniformFloats = function _() {
+            var uniforms = {};
+            uniforms["u_persistence"] = this.persistence;
+            uniforms["u_scale"] = this.scale;
+            uniforms["u_zPosition"] = this.zPosition;
+            return uniforms;
+        };
+        _this.uniformBools = function _() {
+            var uniforms = {};
+            uniforms["u_colored"] = this.colored;
+            return uniforms;
+        };
+        _super.prototype.render.call(_this);
+        return _this;
+    }
+    Object.defineProperty(NoiseTEX.prototype, "octaves", {
+        get: function () { return this._octaves; },
+        set: function (value) { this._octaves = value; _super.prototype.render.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(NoiseTEX.prototype, "persistence", {
+        get: function () { return this._persistence; },
+        set: function (value) { this._persistence = value; _super.prototype.render.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(NoiseTEX.prototype, "scale", {
+        get: function () { return this._scale; },
+        set: function (value) { this._scale = value; _super.prototype.render.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(NoiseTEX.prototype, "zPosition", {
+        get: function () { return this._zPosition; },
+        set: function (value) { this._zPosition = value; _super.prototype.render.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(NoiseTEX.prototype, "colored", {
+        get: function () { return this._colored; },
+        set: function (value) { this._colored = value; _super.prototype.render.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    return NoiseTEX;
+}(TEXGenerator));
+// module.exports = NoiseTEX
+var PolygonTEX = /** @class */ (function (_super) {
+    __extends(PolygonTEX, _super);
+    // _antiAliased: boolean = true
+    // public get antiAliased(): boolean { return this._antiAliased }
+    // public set antiAliased(value: boolean) { this._antiAliased = value; super.render(); }
+    function PolygonTEX(canvas) {
+        var _this = _super.call(this, "content/generator/polygon/PolygonTEX.glsl", canvas) || this;
+        _this._radius = 0.25;
+        _this._rotation = 0.0;
+        _this._vertexCount = 3;
+        _this._cornerRadius = 0.0;
+        _this.uniformFloats = function _() {
+            var uniforms = {};
+            uniforms["u_radius"] = this.radius;
+            uniforms["u_rotation"] = this.rotation;
+            uniforms["u_cornerRadius"] = this.cornerRadius;
+            return uniforms;
+        };
+        _this.uniformInts = function _() {
+            var uniforms = {};
+            uniforms["u_vertexCount"] = this.vertexCount;
+            return uniforms;
+        };
+        // this.uniformBools = function _(): Record<string, boolean> {
+        //     let uniforms: Record<string, boolean> = {};
+        //     uniforms["u_antiAliased"] = this.antiAliased;
+        //     return uniforms
+        // }
+        _super.prototype.render.call(_this);
+        return _this;
+    }
+    Object.defineProperty(PolygonTEX.prototype, "radius", {
+        get: function () { return this._radius; },
+        set: function (value) { this._radius = value; _super.prototype.render.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(PolygonTEX.prototype, "rotation", {
+        get: function () { return this._rotation; },
+        set: function (value) { this._rotation = value; _super.prototype.render.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(PolygonTEX.prototype, "vertexCount", {
+        get: function () { return this._vertexCount; },
+        set: function (value) { this._vertexCount = value; _super.prototype.render.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(PolygonTEX.prototype, "cornerRadius", {
+        get: function () { return this._cornerRadius; },
+        set: function (value) { this._cornerRadius = value; _super.prototype.render.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    return PolygonTEX;
+}(TEXGenerator));
+// module.exports = PolygonTEX
+var TEXResource = /** @class */ (function (_super) {
+    __extends(TEXResource, _super);
+    function TEXResource(shaderName, canvas) {
         var _this = _super.call(this, shaderName, canvas) || this;
         _this.subRender = function _() {
             // Sampler
@@ -689,7 +612,135 @@ var TEXEffect = /** @class */ (function (_super) {
         };
         return _this;
     }
-    Object.defineProperty(TEXEffect.prototype, "input", {
+    return TEXResource;
+}(TEX));
+var ImageTEX = /** @class */ (function (_super) {
+    __extends(ImageTEX, _super);
+    function ImageTEX(canvas, image) {
+        var _this = _super.call(this, "content/resource/image/ImageTEX.glsl", canvas) || this;
+        _this._imageResolution = null;
+        _this.image = image;
+        _this.uniformResolutions = function _() {
+            var _a;
+            var uniforms = {};
+            uniforms["u_imageResolution"] = (_a = this.imageResolution) !== null && _a !== void 0 ? _a : new TEXResolution(1, 1);
+            return uniforms;
+        };
+        if (image != null) {
+            _this.loadImage(image);
+        }
+        return _this;
+    }
+    Object.defineProperty(ImageTEX.prototype, "imageResolution", {
+        get: function () { return this._imageResolution; },
+        set: function (value) { this._imageResolution = value; _super.prototype.render.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    ImageTEX.prototype.loadImage = function (image) {
+        this.imageResolution = new TEXResolution(image.width, image.height);
+        this.resourceTexture = this.createTexture(image);
+        _super.prototype.render.call(this);
+    };
+    return ImageTEX;
+}(TEXResource));
+// module.exports = ImageTEX;
+var TEXEffect = /** @class */ (function (_super) {
+    __extends(TEXEffect, _super);
+    function TEXEffect(shaderName, canvas) {
+        return _super.call(this, shaderName, canvas) || this;
+    }
+    return TEXEffect;
+}(TEX));
+var TEXMergerEffect = /** @class */ (function (_super) {
+    __extends(TEXMergerEffect, _super);
+    function TEXMergerEffect(shaderName, canvas) {
+        var _this = _super.call(this, shaderName, canvas) || this;
+        _this.subRender = function _() {
+            // Sampler
+            var samplerLocationA = this.gl.getUniformLocation(this.shaderProgram, 'u_samplerA');
+            var samplerLocationB = this.gl.getUniformLocation(this.shaderProgram, 'u_samplerB');
+            this.gl.uniform1i(samplerLocationA, 0);
+            this.gl.uniform1i(samplerLocationB, 1);
+        };
+        return _this;
+    }
+    Object.defineProperty(TEXMergerEffect.prototype, "inputA", {
+        get: function () { return this._inputA; },
+        set: function (tex) {
+            if (this._inputA != undefined) {
+                this.disconnect(this.inputA, 0);
+            }
+            if (tex != undefined) {
+                this.connect(tex, 0);
+            }
+            this._inputA = tex;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(TEXMergerEffect.prototype, "inputB", {
+        get: function () { return this._inputB; },
+        set: function (tex) {
+            if (this._inputB != undefined) {
+                this.disconnect(this.inputB, 1);
+            }
+            if (tex != undefined) {
+                this.connect(tex, 1);
+            }
+            this._inputB = tex;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    TEXMergerEffect.prototype.connect = function (tex, index) {
+        tex.outputs.push(this);
+        _super.prototype.pushPixels.call(this, tex, this, index);
+        if (this.inputs.length > 0) {
+            this.inputs.splice(index, 0, tex);
+        }
+        else {
+            this.inputs.push(tex);
+        }
+    };
+    TEXMergerEffect.prototype.disconnect = function (tex, index) {
+        for (var index_1 = 0; index_1 < tex.outputs.length; index_1++) {
+            var output = tex.outputs[index_1];
+            if (output == this) {
+                tex.outputs.splice(index_1, 1);
+                break;
+            }
+        }
+        if (this.inputs.length > 1) {
+            this.inputs.splice(index, 1);
+        }
+        else {
+            this.inputs = [];
+        }
+        _super.prototype.render.call(this);
+    };
+    return TEXMergerEffect;
+}(TEXEffect));
+var BlendTEX = /** @class */ (function (_super) {
+    __extends(BlendTEX, _super);
+    function BlendTEX(canvas) {
+        return _super.call(this, "effects/merger/blend/BlendTEX.glsl", canvas) || this;
+    }
+    return BlendTEX;
+}(TEXMergerEffect));
+// module.exports = BlendTEX
+var TEXSingleEffect = /** @class */ (function (_super) {
+    __extends(TEXSingleEffect, _super);
+    function TEXSingleEffect(shaderName, canvas) {
+        var _this = _super.call(this, shaderName, canvas) || this;
+        _this.subRender = function _() {
+            // Sampler
+            var samplerLocation = this.gl.getUniformLocation(this.shaderProgram, 'u_sampler');
+            this.gl.uniform1i(samplerLocation, 0);
+        };
+        return _this;
+    }
+    Object.defineProperty(TEXSingleEffect.prototype, "input", {
         get: function () { return this._input; },
         set: function (tex) {
             if (this._input != undefined) {
@@ -703,12 +754,12 @@ var TEXEffect = /** @class */ (function (_super) {
         enumerable: false,
         configurable: true
     });
-    TEXEffect.prototype.connect = function (tex) {
+    TEXSingleEffect.prototype.connect = function (tex) {
         tex.outputs.push(this);
         this.inputs = [tex];
         _super.prototype.pushPixels.call(this, tex, this);
     };
-    TEXEffect.prototype.disconnect = function (tex) {
+    TEXSingleEffect.prototype.disconnect = function (tex) {
         for (var index = 0; index < tex.outputs.length; index++) {
             var output = tex.outputs[index];
             if (output == this) {
@@ -719,15 +770,15 @@ var TEXEffect = /** @class */ (function (_super) {
         this.inputs = [];
         _super.prototype.render.call(this);
     };
-    return TEXEffect;
-}(TEX));
+    return TEXSingleEffect;
+}(TEXEffect));
 var ColorShiftTEX = /** @class */ (function (_super) {
     __extends(ColorShiftTEX, _super);
     function ColorShiftTEX(canvas, input) {
-        var _this = _super.call(this, "ColorShiftTEX", canvas) || this;
+        var _this = _super.call(this, "effects/single/colorShift/ColorShiftTEX.glsl", canvas) || this;
         _this._hue = 0.0;
         _this._saturation = 1.0;
-        _this._tintColor = new Color(1.0, 1.0, 1.0, 1.0);
+        _this._tintColor = new TEXColor(1.0, 1.0, 1.0, 1.0);
         _this.uniformFloats = function _() {
             var uniforms = {};
             uniforms["u_hue"] = this.hue;
@@ -761,83 +812,36 @@ var ColorShiftTEX = /** @class */ (function (_super) {
         configurable: true
     });
     return ColorShiftTEX;
-}(TEXEffect));
-module.exports = ColorShiftTEX;
-// TEX Merge Effect
-var TEXMergeEffect = /** @class */ (function (_super) {
-    __extends(TEXMergeEffect, _super);
-    function TEXMergeEffect(shaderName, canvas) {
-        var _this = _super.call(this, shaderName, canvas) || this;
-        _this.subRender = function _() {
-            // Sampler
-            var samplerLocationA = this.gl.getUniformLocation(this.shaderProgram, 'u_samplerA');
-            var samplerLocationB = this.gl.getUniformLocation(this.shaderProgram, 'u_samplerB');
-            this.gl.uniform1i(samplerLocationA, 0);
-            this.gl.uniform1i(samplerLocationB, 1);
-        };
-        return _this;
+}(TEXSingleEffect));
+// module.exports = ColorShiftTEX
+var TEXColor = /** @class */ (function () {
+    function TEXColor(red, green, blue, alpha) {
+        this.red = red;
+        this.green = green;
+        this.blue = blue;
+        this.alpha = alpha;
     }
-    Object.defineProperty(TEXMergeEffect.prototype, "inputA", {
-        get: function () { return this._inputA; },
-        set: function (tex) {
-            if (this._inputA != undefined) {
-                this.disconnect(this.inputA, 0);
-            }
-            if (tex != undefined) {
-                this.connect(tex, 0);
-            }
-            this._inputA = tex;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(TEXMergeEffect.prototype, "inputB", {
-        get: function () { return this._inputB; },
-        set: function (tex) {
-            if (this._inputB != undefined) {
-                this.disconnect(this.inputB, 1);
-            }
-            if (tex != undefined) {
-                this.connect(tex, 1);
-            }
-            this._inputB = tex;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    TEXMergeEffect.prototype.connect = function (tex, index) {
-        tex.outputs.push(this);
-        _super.prototype.pushPixels.call(this, tex, this, index);
-        if (this.inputs.length > 0) {
-            this.inputs.splice(index, 0, tex);
-        }
-        else {
-            this.inputs.push(tex);
-        }
-    };
-    TEXMergeEffect.prototype.disconnect = function (tex, index) {
-        for (var index_1 = 0; index_1 < tex.outputs.length; index_1++) {
-            var output = tex.outputs[index_1];
-            if (output == this) {
-                tex.outputs.splice(index_1, 1);
-                break;
-            }
-        }
-        if (this.inputs.length > 1) {
-            this.inputs.splice(index, 1);
-        }
-        else {
-            this.inputs = [];
-        }
-        _super.prototype.render.call(this);
-    };
-    return TEXMergeEffect;
-}(TEX));
-var BlendTEX = /** @class */ (function (_super) {
-    __extends(BlendTEX, _super);
-    function BlendTEX(canvas) {
-        return _super.call(this, "BlendTEX", canvas) || this;
+    TEXColor.clear = new TEXColor(0.0, 0.0, 0.0, 0.0);
+    TEXColor.black = new TEXColor(0.0, 0.0, 0.0, 1.0);
+    TEXColor.white = new TEXColor(1.0, 1.0, 1.0, 1.0);
+    return TEXColor;
+}());
+// module.exports = TEXColor;
+var TEXPosition = /** @class */ (function () {
+    function TEXPosition(x, y) {
+        this.x = x;
+        this.y = y;
     }
-    return BlendTEX;
-}(TEXMergeEffect));
-module.exports = BlendTEX;
+    return TEXPosition;
+}());
+// module.exports = TEXPosition;
+var TEXResolution = /** @class */ (function () {
+    function TEXResolution(width, height) {
+        this.width = width;
+        this.height = height;
+    }
+    TEXResolution.fullHD = new TEXResolution(1920, 1080);
+    TEXResolution.ultraHD = new TEXResolution(3840, 2160);
+    return TEXResolution;
+}());
+// module.exports = TEXResolution;

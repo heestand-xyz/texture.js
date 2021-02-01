@@ -1,6 +1,6 @@
 console.log("texture.js test")
 
-TEX.shaderFolder = "../shaders/"
+TEX.shaderFolder = "../sources/shaders/"
 
 var canvasOne = document.getElementById("canvasOne");
 var canvasTwo = document.getElementById("canvasTwo");

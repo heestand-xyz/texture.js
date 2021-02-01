@@ -1,5 +1,5 @@
 {
-  "name": "texture.js",
+  "name": "texture-js-package",
   "version": "0.1.0",
   "devDependencies": {
     "@types/node": "^14.14.21",

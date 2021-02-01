@@ -3,19 +3,19 @@ class ColorShiftTEX extends TEXSingleEffect {
 
     _hue: number = 0.0
     public get hue(): number { return this._hue }
-    public set hue(value: number) { this._hue = value; super.render(); }
+    public set hue(value: number) { this._hue = value; super.refresh(); }
 
     _saturation: number = 1.0
     public get saturation(): number { return this._saturation }
-    public set saturation(value: number) { this._saturation = value; super.render(); }
+    public set saturation(value: number) { this._saturation = value; super.refresh(); }
 
     _tintColor: TEXColor = new TEXColor(1.0, 1.0, 1.0, 1.0)
     public get tintColor(): TEXColor { return this._tintColor }
-    public set tintColor(value: TEXColor) { this._tintColor = value; super.render(); }
+    public set tintColor(value: TEXColor) { this._tintColor = value; super.refresh(); }
 
-    constructor(canvas: HTMLCanvasElement, input: TEX) {
+    constructor() {
 
-        super("effects/single/colorShift/ColorShiftTEX.glsl", canvas)
+        super("effects/single/colorShift/ColorShiftTEX.glsl")
 
         this.uniformFloats = function _(): Record<string, number> {
             let uniforms: Record<string, number> = {};
@@ -28,7 +28,7 @@ class ColorShiftTEX extends TEXSingleEffect {
             uniforms["u_tintColor"] = this.tintColor;
             return uniforms
         }
-        super.render()
+        super.refresh()
 
     }
 

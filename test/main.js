@@ -20,31 +20,26 @@ function resize() {
 resize()
 
 
-const gradientTex = new GradientTEX(canvasOne)
-gradientTex.direction = GradientDirection.horizontal
+const gradientTex = new GradientTEX()
+gradientTex.colorStops = [
+    new GradientColorStop(0.0, TEXColor.black),
+    new GradientColorStop(1.0, new TEXColor(0.0, 0.5, 1.0))
+]
+const renderTargetOne = new RenderTarget(gradientTex, canvasOne)
 
 const polygonTex = new PolygonTEX(canvasTwo)
-// polygonTex.radius = 1.0 / 3.0
-// polygonTex.cornerRadius = 0.05
-
-// const imageTex = new ImageTEX(canvasThree)
-// let image = new Image();
-// image.src = "http://heestand.xyz/assets/images/kite.jpg"
-// image.onload = function() {
-//     imageTex.loadImage(image)
-// }
+polygonTex.color = new TEXColor(1.0, 0.5, 0.0)
 
 const blendTex = new BlendTEX(canvasThree)
 blendTex.inputA = gradientTex
 blendTex.inputB = polygonTex
 
-// const colorShiftTex = new ColorShiftTEX(canvasFour)
-// colorShiftTex.input = blendTex
-// colorShiftTex.saturation = 2.0
+const colorShiftTex = new ColorShiftTEX(canvasFour)
+colorShiftTex.input = blendTex
+colorShiftTex.saturation = 2.0
 
-// gradientTex.render()
-// polygonTex.render()
-// setTimeout(function(){ gradientTex.render() }, 100);
+// const imageTex = new ImageTEX(canvasThree)
+// imageTex.loadImageURL("http://heestand.xyz/assets/images/kite.jpg")
 
 // Mouse Over
 
@@ -78,12 +73,12 @@ blendTex.inputB = polygonTex
 // Window Resize
 
 function update() {
-    circleTex.layout()
-    circleTex.render()
-    polygonTex.layout()
-    polygonTex.render()
-    blendTex.layout()
-    blendTex.render()
+    // circleTex.layout()
+    // circleTex.render()
+    // polygonTex.layout()
+    // polygonTex.render()
+    // blendTex.layout()
+    // blendTex.render()
     // colorShiftTex.layout()
     // colorShiftTex.render()
 }

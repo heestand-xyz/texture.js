@@ -1,9 +1,9 @@
 
 class BlendTEX extends TEXMergerEffect {
 
-    constructor(canvas: HTMLCanvasElement) {
+    constructor() {
 
-        super("effects/merger/blend/BlendTEX.glsl", canvas)
+        super("effects/merger/blend/BlendTEX.glsl")
 
     }
 

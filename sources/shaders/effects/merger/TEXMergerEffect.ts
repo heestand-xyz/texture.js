@@ -26,17 +26,17 @@ class TEXMergerEffect extends TEXEffect {
     }
 
 
-    constructor(shaderName: string, canvas: HTMLCanvasElement) {
+    constructor(shaderName: string) {
         
-        super(shaderName, canvas)
+        super(shaderName)
         
-        this.subRender = function _() {
+        this.subRender = function _(gl: WebGLRenderingContext, program: WebGLProgram) {
 
             // Sampler
-            const samplerLocationA = this.gl.getUniformLocation(this.shaderProgram, 'u_samplerA');
-            const samplerLocationB = this.gl.getUniformLocation(this.shaderProgram, 'u_samplerB');
-            this.gl.uniform1i(samplerLocationA, 0);
-            this.gl.uniform1i(samplerLocationB, 1);
+            const samplerLocationA = gl.getUniformLocation(program, 'u_samplerA');
+            const samplerLocationB = gl.getUniformLocation(program, 'u_samplerB');
+            gl.uniform1i(samplerLocationA, 0);
+            gl.uniform1i(samplerLocationB, 1);
 
         }
 
@@ -44,12 +44,12 @@ class TEXMergerEffect extends TEXEffect {
 
     connect(tex: TEX, index: number) {
         tex.outputs.push(this)
-        super.pushPixels(tex, this, index)
         if (this.inputs.length > 0) {
             this.inputs.splice(index, 0, tex)
         } else {
             this.inputs.push(tex)
         }
+        super.refreshInputs()
     }
 
     disconnect(tex: TEX, index: number) {
@@ -65,7 +65,7 @@ class TEXMergerEffect extends TEXEffect {
         } else {
             this.inputs = []
         }
-        super.render();
+        super.refreshInputs();
     }
 
 }

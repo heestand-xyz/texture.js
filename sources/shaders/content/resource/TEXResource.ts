@@ -1,16 +1,16 @@
 
-class TEXResource extends TEX {
-    
+class TEXResource extends TEXContent {
+
     resourceTexture?: WebGLTexture
 
-    constructor(shaderName: string, canvas: HTMLCanvasElement) {
+    constructor(shaderName: string) {
         
-        super(shaderName, canvas)
+        super(shaderName)
 
-        this.subRender = function _() {
+        this.subRender = function _(gl: WebGLRenderingContext, program: WebGLProgram) {
             // Sampler
-            const samplerLocation = this.gl.getUniformLocation(this.shaderProgram, 'u_sampler');
-            this.gl.uniform1i(samplerLocation, 0);
+            const samplerLocation = gl.getUniformLocation(program, 'u_sampler');
+            gl.uniform1i(samplerLocation, 0);
         }
 
     }

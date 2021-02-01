@@ -13,15 +13,15 @@ class TEXSingleEffect extends TEXEffect {
         this._input = tex;
     }
 
-    constructor(shaderName: string, canvas: HTMLCanvasElement) {
+    constructor(shaderName: string) {
         
-        super(shaderName, canvas)
+        super(shaderName)
         
-        this.subRender = function _() {
+        this.subRender = function _(gl: WebGLRenderingContext, program: WebGLProgram) {
 
             // Sampler
-            const samplerLocation = this.gl.getUniformLocation(this.shaderProgram, 'u_sampler');
-            this.gl.uniform1i(samplerLocation, 0);
+            const samplerLocation = gl.getUniformLocation(program, 'u_sampler');
+            gl.uniform1i(samplerLocation, 0);
 
         }
 
@@ -30,7 +30,7 @@ class TEXSingleEffect extends TEXEffect {
     connect(tex: TEX) {
         tex.outputs.push(this)
         this.inputs = [tex]
-        super.pushPixels(tex, this)
+        super.refreshInputs()
     }
 
     disconnect(tex: TEX) {
@@ -42,7 +42,7 @@ class TEXSingleEffect extends TEXEffect {
             }
         }
         this.inputs = []
-        super.render();
+        super.refreshInputs();
     }
 
 }

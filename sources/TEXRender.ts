@@ -7,6 +7,7 @@ class TEXRender {
     gl: WebGLRenderingContext
     
     texPrograms: Record<number, WebGLProgram> = {}
+    texTextures: Record<number, WebGLTexture> = {}
 
     quadBuffer!: WebGLBuffer
     
@@ -76,7 +77,7 @@ class TEXRender {
         return emptyTexture
     }
 
-    createFramebuffer(gl: WebGLRenderingContext, texture: WebGLTexture, index: number = 0): WebGLFramebuffer {
+    createFramebuffer(gl: WebGLRenderingContext, texture: WebGLTexture): WebGLFramebuffer {
 
         const framebuffer: WebGLFramebuffer = gl.createFramebuffer()!;
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
@@ -104,30 +105,6 @@ class TEXRender {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     }
 
-    // Prep
-
-    // prepTexture(tex: TEX, index: number): WebGLTexture {
-
-    //     // if (tex.texture != null) {
-    //     //     this.gl.deleteTexture(tex.texture)
-    //     // }
-    //     const texture = this.createEmptyTexture(this.gl, this.resolutionFor(tex))
-
-    //     return texture
-
-    // }
-
-    // prepFramebuffer(tex: TEX, texture: WebGLTexture): WebGLFramebuffer {
-
-    //     // if (tex.framebuffer != null) {
-    //     //     this.gl.deleteFramebuffer(tex.framebuffer)
-    //     // }
-    //     const framebuffer = this.createFramebuffer(this.gl, texture)
-
-    //     return framebuffer
-
-    // }
-
     // Activate
 
     activateTexture(index: number) {
@@ -135,6 +112,8 @@ class TEXRender {
             this.gl.activeTexture(this.gl.TEXTURE0)
         } else if (index == 1) {
             this.gl.activeTexture(this.gl.TEXTURE1)
+        } else if (index == 2) {
+            this.gl.activeTexture(this.gl.TEXTURE2)
         }
     }
 
@@ -146,32 +125,56 @@ class TEXRender {
 
         if (this.tex instanceof TEXEffect) {
             let texEffect = this.tex as TEXEffect
-            this.drawInputs(texEffect, true)
+            this.drawEffect(texEffect, true)
         } else {
             this.drawTo(this.tex, null)
         }
 
     }
 
-    drawInputs(texEffect: TEXEffect, final: boolean = false) {
+    drawEffect(texEffect: TEXEffect, final: boolean = false) {
 
         for (let index = 0; index < texEffect.texInputs.length; index++) {
             const texEffectInput = texEffect.texInputs[index];
-            
-            if (texEffectInput instanceof TEXEffect) {
-                let texEffectInputEffect = texEffectInput as TEXEffect
-                this.drawInputs(texEffectInputEffect)
-            }
-            
+
             console.log(this.tex.constructor.name + " (Render) - " + "Draw Input >->", index, ">->", texEffectInput.constructor.name)
 
-            this.activateTexture(index)
+            if (texEffectInput instanceof TEXEffect) {
+                let subTexEffect = texEffectInput as TEXEffect
+
+                this.drawEffect(subTexEffect)
+
+                if (subTexEffect instanceof TEXSingleEffect) {
+                    let subTexSingleEffect = subTexEffect as TEXSingleEffect
+                    if (subTexSingleEffect.input != null) {
+                        const inputTexture: WebGLTexture = this.texTextures[subTexSingleEffect.input!.id]
+                        this.activateTexture(0)
+                        this.gl.bindTexture(this.gl.TEXTURE_2D, inputTexture!);    
+                    }
+                } else if (subTexEffect instanceof TEXMergerEffect) {
+                    let subTexMergerEffect = subTexEffect as TEXMergerEffect
+                    if (subTexMergerEffect.inputA != null) {
+                        const inputTextureA: WebGLTexture = this.texTextures[subTexMergerEffect.inputA!.id]
+                        this.activateTexture(0)
+                        this.gl.bindTexture(this.gl.TEXTURE_2D, inputTextureA!);    
+                    }
+                    if (subTexMergerEffect.inputB != null) {
+                        const inputTextureB: WebGLTexture = this.texTextures[subTexMergerEffect.inputB!.id]
+                        this.activateTexture(1)
+                        this.gl.bindTexture(this.gl.TEXTURE_2D, inputTextureB!);
+                    }  
+                }        
+
+            }
+            
             if (final) {
                 this.drawTo(texEffectInput, null)
             } else {
+                this.activateTexture(2)
                 const texture = this.createEmptyTexture(this.gl, this.resolutionFor(texEffectInput))
                 const framebuffer = this.createFramebuffer(this.gl, texture)
                 this.drawTo(texEffectInput, framebuffer)
+                this.texTextures[texEffectInput.id] = texture
             }
             
         }

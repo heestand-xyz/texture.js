@@ -15,6 +15,7 @@ var __extends = (this && this.__extends) || (function () {
 var TEXRender = /** @class */ (function () {
     function TEXRender(tex, canvas) {
         this.texPrograms = {};
+        this.texTextures = {};
         console.log(tex.constructor.name + " (Render) - " + "Init");
         this.tex = tex;
         tex.render = this;
@@ -62,8 +63,7 @@ var TEXRender = /** @class */ (function () {
         }
         return emptyTexture;
     };
-    TEXRender.prototype.createFramebuffer = function (gl, texture, index) {
-        if (index === void 0) { index = 0; }
+    TEXRender.prototype.createFramebuffer = function (gl, texture) {
         var framebuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
         var attachmentPoint = gl.COLOR_ATTACHMENT0;
@@ -83,21 +83,6 @@ var TEXRender = /** @class */ (function () {
         gl.depthFunc(gl.LEQUAL);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     };
-    // Prep
-    // prepTexture(tex: TEX, index: number): WebGLTexture {
-    //     // if (tex.texture != null) {
-    //     //     this.gl.deleteTexture(tex.texture)
-    //     // }
-    //     const texture = this.createEmptyTexture(this.gl, this.resolutionFor(tex))
-    //     return texture
-    // }
-    // prepFramebuffer(tex: TEX, texture: WebGLTexture): WebGLFramebuffer {
-    //     // if (tex.framebuffer != null) {
-    //     //     this.gl.deleteFramebuffer(tex.framebuffer)
-    //     // }
-    //     const framebuffer = this.createFramebuffer(this.gl, texture)
-    //     return framebuffer
-    // }
     // Activate
     TEXRender.prototype.activateTexture = function (index) {
         if (index == 0) {
@@ -106,35 +91,60 @@ var TEXRender = /** @class */ (function () {
         else if (index == 1) {
             this.gl.activeTexture(this.gl.TEXTURE1);
         }
+        else if (index == 2) {
+            this.gl.activeTexture(this.gl.TEXTURE2);
+        }
     };
     // Draw
     TEXRender.prototype.draw = function () {
         console.log(this.tex.constructor.name + " (Render) - " + "Draw");
         if (this.tex instanceof TEXEffect) {
             var texEffect = this.tex;
-            this.drawInputs(texEffect, true);
+            this.drawEffect(texEffect, true);
         }
         else {
             this.drawTo(this.tex, null);
         }
     };
-    TEXRender.prototype.drawInputs = function (texEffect, final) {
+    TEXRender.prototype.drawEffect = function (texEffect, final) {
         if (final === void 0) { final = false; }
         for (var index = 0; index < texEffect.texInputs.length; index++) {
             var texEffectInput = texEffect.texInputs[index];
-            if (texEffectInput instanceof TEXEffect) {
-                var texEffectInputEffect = texEffectInput;
-                this.drawInputs(texEffectInputEffect);
-            }
             console.log(this.tex.constructor.name + " (Render) - " + "Draw Input >->", index, ">->", texEffectInput.constructor.name);
-            this.activateTexture(index);
+            if (texEffectInput instanceof TEXEffect) {
+                var subTexEffect = texEffectInput;
+                this.drawEffect(subTexEffect);
+                if (subTexEffect instanceof TEXSingleEffect) {
+                    var subTexSingleEffect = subTexEffect;
+                    if (subTexSingleEffect.input != null) {
+                        var inputTexture = this.texTextures[subTexSingleEffect.input.id];
+                        this.activateTexture(0);
+                        this.gl.bindTexture(this.gl.TEXTURE_2D, inputTexture);
+                    }
+                }
+                else if (subTexEffect instanceof TEXMergerEffect) {
+                    var subTexMergerEffect = subTexEffect;
+                    if (subTexMergerEffect.inputA != null) {
+                        var inputTextureA = this.texTextures[subTexMergerEffect.inputA.id];
+                        this.activateTexture(0);
+                        this.gl.bindTexture(this.gl.TEXTURE_2D, inputTextureA);
+                    }
+                    if (subTexMergerEffect.inputB != null) {
+                        var inputTextureB = this.texTextures[subTexMergerEffect.inputB.id];
+                        this.activateTexture(1);
+                        this.gl.bindTexture(this.gl.TEXTURE_2D, inputTextureB);
+                    }
+                }
+            }
             if (final) {
                 this.drawTo(texEffectInput, null);
             }
             else {
+                this.activateTexture(2);
                 var texture = this.createEmptyTexture(this.gl, this.resolutionFor(texEffectInput));
                 var framebuffer = this.createFramebuffer(this.gl, texture);
                 this.drawTo(texEffectInput, framebuffer);
+                this.texTextures[texEffectInput.id] = texture;
             }
         }
     };

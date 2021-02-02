@@ -48,14 +48,13 @@ colorShiftTex1.hue = 0.5
 new TEXRender(colorShiftTex1, canvasFour)
 
 const colorShiftTex2 = new ColorShiftTEX()
-colorShiftTex2.input = blendTex
-colorShiftTex2.saturation = 0.0
+colorShiftTex2.input = colorShiftTex1
+colorShiftTex2.saturation = 2.0
 new TEXRender(colorShiftTex2, canvasFive)
 
 const colorShiftTex3 = new ColorShiftTEX()
-colorShiftTex3.input = blendTex
-colorShiftTex1.hue = 0.5
-colorShiftTex3.saturation = 2.0
+colorShiftTex3.input = colorShiftTex2
+colorShiftTex3.saturation = 0.0
 new TEXRender(colorShiftTex3, canvasSix)
 
 // const imageTex = new ImageTEX(canvasThree)

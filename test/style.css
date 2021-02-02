@@ -1,10 +1,12 @@
 body {
     margin: 0;
+    background-color: #eee;
+    color: #111;
 }
 @media (prefers-color-scheme: dark) {
     body {
         background-color: #111;
-        color: white;
+        color: #eee;
     }
 }
 .canvasArea {

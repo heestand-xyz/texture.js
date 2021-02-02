@@ -3,23 +3,23 @@ class NoiseTEX extends TEXGenerator {
     
     _octaves: number = 1.0
     public get octaves(): number { return this._octaves }
-    public set octaves(value: number) { this._octaves = value; super.refresh(); }
+    public set octaves(value: number) { this._octaves = value; super.didEdit(); }
 
     _persistence: number = 0.5
     public get persistence(): number { return this._persistence }
-    public set persistence(value: number) { this._persistence = value; super.refresh(); }
+    public set persistence(value: number) { this._persistence = value; super.didEdit(); }
 
     _scale: number = 1.0
     public get scale(): number { return this._scale }
-    public set scale(value: number) { this._scale = value; super.refresh(); }
+    public set scale(value: number) { this._scale = value; super.didEdit(); }
 
     _zPosition: number = 0.0
     public get zPosition(): number { return this._zPosition }
-    public set zPosition(value: number) { this._zPosition = value; super.refresh(); }
+    public set zPosition(value: number) { this._zPosition = value; super.didEdit(); }
 
     _colored: boolean = false
     public get colored(): boolean { return this._colored }
-    public set colored(value: boolean) { this._colored = value; super.refresh(); }
+    public set colored(value: boolean) { this._colored = value; super.didEdit(); }
 
     constructor(resolution: TEXResolution) {
         
@@ -42,7 +42,7 @@ class NoiseTEX extends TEXGenerator {
             uniforms["u_colored"] = this.colored;
             return uniforms
         }
-        super.refresh()
+        super.didEdit()
 
     }
 

@@ -38,7 +38,7 @@ new TEXRender(blendTex, canvasThree)
 
 const colorShiftTex = new ColorShiftTEX()
 colorShiftTex.input = blendTex
-colorShiftTex.saturation = 2.0
+colorShiftTex.saturation = 0.0
 new TEXRender(colorShiftTex, canvasFour)
 
 // const imageTex = new ImageTEX(canvasThree)

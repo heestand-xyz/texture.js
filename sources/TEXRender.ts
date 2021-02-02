@@ -6,10 +6,11 @@ class TEXRender {
     canvas: HTMLCanvasElement
     gl: WebGLRenderingContext
     
-    shaderProgram!: WebGLProgram
     quadBuffer!: WebGLBuffer
     
     constructor(tex: TEX, canvas: HTMLCanvasElement) {
+
+        console.log(tex.constructor.name + " (Render) - " + "Init")
 
         this.tex = tex
         tex.render = this
@@ -18,72 +19,36 @@ class TEXRender {
         
         this.gl = this.canvas.getContext("webgl")!
 
-        tex.loadShader((source: string) : void => {
-            console.log(this.tex.constructor.name + " (Render) - " + "Loaded")
-            this.setup(source)
-            this.draw()    
+        this.quadBuffer = this.createQuadBuffer(this.gl)  
+
+        const self = this
+
+        tex.reverseCrawl(function _(crawlTex, done) {
+            
+            crawlTex.setup(self.gl, done)
+
+        }, function completion() {
+
+            console.log(tex.constructor.name + " (Render) - " + "Setup")
+
+            self.draw()
+
+            // tex.reverseContentCrawl(function _(crawlTex, done) {
+            //     crawlTex.refresh()
+            //     done()
+            // }, function completion() {})
+
         })
-
-    }
-
-    // Setup
-
-    setup(fragmentShaderSource: string) {
-        
-        let vertexShaderSource: string = "attribute vec4 position; void main() { gl_Position = position; }"
-        let vertexShader: WebGLShader = this.createShader(this.gl, vertexShaderSource, this.gl.VERTEX_SHADER)
-        let fragmentShader: WebGLShader = this.createShader(this.gl, fragmentShaderSource, this.gl.FRAGMENT_SHADER)
-
-        this.shaderProgram = this.createProgram(this.gl, vertexShader, fragmentShader)
-
-        this.quadBuffer = this.createQuadBuffer(this.gl)
 
     }
 
     // Create
 
-    createShader(gl: WebGLRenderingContext, sourceCode: string, type: number): WebGLShader {
-        var shader: WebGLShader = gl.createShader(type)!;
-        gl.shaderSource(shader, sourceCode);
-        gl.compileShader(shader);
-        
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-            let info = gl.getShaderInfoLog(shader);
-            gl.deleteShader(shader)
-            console.log("GL Shader Error:", info)
-            throw 'GL Shader Error.\n\n' + info;
-        }
-        return shader;
-    }
-
-    createProgram(gl: WebGLRenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader) {
-        
-        const shaderProgram = gl.createProgram()!;
-        gl.attachShader(shaderProgram, vertexShader);
-        gl.attachShader(shaderProgram, fragmentShader);
-        gl.linkProgram(shaderProgram);
-      
-        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-            let info = gl.getProgramInfoLog(shaderProgram)
-            console.log("GL Program Error:", info)
-            throw 'GL Program Error.\n\n' + info;
-        }
-      
-        return shaderProgram;
-    }
-
     createQuadBuffer(gl: WebGLRenderingContext): WebGLBuffer {
 
-        // Create a buffer for the square's positions.
-      
         const positionBuffer = gl.createBuffer()!;
       
-        // Select the positionBuffer as the one to apply buffer
-        // operations to from here out.
-      
         gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-      
-        // Now create an array of positions for the square.
       
         const positions = [
             -1.0, 1.0,
@@ -92,10 +57,6 @@ class TEXRender {
             1.0, -1.0,
         ];
       
-        // Now pass the list of positions into WebGL to build the
-        // shape. We do this by creating a Float32Array from the
-        // JavaScript array, then use it to fill the current buffer.
-      
         gl.bufferData(gl.ARRAY_BUFFER,
                       new Float32Array(positions),
                       gl.STATIC_DRAW);
@@ -103,35 +64,141 @@ class TEXRender {
         return positionBuffer
     }
 
+    createEmptyTexture(gl: WebGLRenderingContext, resolution: TEXResolution): WebGLTexture {
+        const emptyTexture = gl.createTexture()!;
+        gl.bindTexture(gl.TEXTURE_2D, emptyTexture);
+        {
+            const internalFormat = gl.RGBA;
+            const border = 0;
+            const level = 0;
+            const format = gl.RGBA;
+            const type = gl.UNSIGNED_BYTE;
+            const data = null;
+            gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, resolution.width, resolution.height, border, format, type, data);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        }
+        return emptyTexture
+    }
 
-    // Render
+    createFramebuffer(gl: WebGLRenderingContext, texture: WebGLTexture, index: number = 0): WebGLFramebuffer {
+
+        const framebuffer: WebGLFramebuffer = gl.createFramebuffer()!;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+
+        const attachmentPoint = gl.COLOR_ATTACHMENT0;
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, texture, 0);
+        
+        return framebuffer
+
+    }
+
+    // Resolution
+    
+    resolutionFor(tex: TEX): TEXResolution {
+        return tex.firstResolution ?? new TEXResolution(this.canvas.width, this.canvas.height)
+    }
+
+    // Clear
+
+    clear(gl: WebGLRenderingContext) {
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clearDepth(1.0);
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    }
+
+    // Prep
+
+    prepTexture(tex: TEX): WebGLTexture {
+
+        if (tex.texture != null) {
+            this.gl.deleteTexture(tex.texture)
+        }
+        tex.texture = this.createEmptyTexture(this.gl, this.resolutionFor(tex))
+
+        return tex.texture!
+
+    }
+
+    prepFramebuffer(tex: TEX): WebGLFramebuffer {
+
+        const texture = tex.texture ?? this.prepTexture(tex)
+
+        if (tex.framebuffer != null) {
+            this.gl.deleteFramebuffer(tex.framebuffer)
+        }
+        tex.framebuffer = this.createFramebuffer(this.gl, texture)
+
+        return tex.framebuffer!
+
+    }
+
+    // Draw
 
     public draw() {
-        console.log(this.tex.constructor.name + " (Render) - " + "Draw")
-        // console.log(this.shaderPath + " - " + "draw")
-        // this.renderTo(this.framebuffer)
+
+        console.log(this.tex.constructor.name + " (Render) - " + "Draw >->->->")
+
+        if (this.tex instanceof TEXEffect) {
+            let texEffect = this.tex as TEXEffect
+            this.drawInputs(texEffect)
+        }
         this.drawTo(this.tex, null)
-        // this.tex.outputs.forEach(output => {
-        //     output.pushPixels(this, output)
-        // });
+
+    }
+
+    drawInputs(texEffect: TEXEffect) {
+
+        console.log(this.tex.constructor.name + " (Render) - " + "Draw Inputs >->->", texEffect.constructor.name)
+
+        for (let index = 0; index < texEffect.texInputs.length; index++) {
+            const texEffectInput = texEffect.texInputs[index];
+            
+            console.log(this.tex.constructor.name + " (Render) - " + "Draw Input >->", index, texEffect.constructor.name, ">>>", texEffectInput.constructor.name)
+
+            if (texEffectInput instanceof TEXEffect) {
+                let texEffectInputEffect = texEffectInput as TEXEffect
+                this.drawInputs(texEffectInputEffect)
+            }
+
+            const inputTexture: WebGLTexture = this.prepTexture(texEffectInput)
+            const inputFramebuffer: WebGLFramebuffer = this.prepFramebuffer(texEffectInput)
+            
+            this.drawTo(texEffectInput, inputFramebuffer)
+            
+            if (index == 0) {
+                this.gl.activeTexture(this.gl.TEXTURE0)
+            } else if (index == 1) {
+                this.gl.activeTexture(this.gl.TEXTURE1)
+            }
+
+        }
+
     }
     
-    drawTo(tex: TEX, framebuffer: WebGLFramebuffer | null) {
+    drawTo(tex: TEX, framebufferTarget: WebGLFramebuffer | null) {
+
+        if (tex.program == null) {
+            console.log("texture.js TEXRender draw failed: TEX (" + tex.constructor.name + ") shader program is null.")
+            return
+        }
+
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, framebufferTarget);
 
         this.clear(this.gl)
-
-        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, framebuffer);
 
         // Vertex
         
         {
-            const numComponents = 2;  // pull out 2 values per iteration
-            const type = this.gl.FLOAT;    // the data in the buffer is 32bit floats
-            const normalize = false;  // don't normalize
-            const stride = 0;         // how many bytes to get from one set of values to the next
-                                    // 0 = use type and numComponents above
-            const attribPosition = this.gl.getAttribLocation(this.shaderProgram, 'position');
-            const offset = 0;         // how many bytes inside the buffer to start from
+            const numComponents = 2; 
+            const type = this.gl.FLOAT;
+            const normalize = false;
+            const stride = 0;
+            const attribPosition = this.gl.getAttribLocation(tex.program!, 'position');
+            const offset = 0;
             this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.quadBuffer);
             this.gl.vertexAttribPointer(
                 attribPosition,
@@ -145,24 +212,24 @@ class TEXRender {
 
         // Program
         
-        this.gl.useProgram(this.shaderProgram);
+        this.gl.useProgram(tex.program!);
 
         // Sub Render
         
         if (tex.subRender != undefined) {
-            tex.subRender!(this.gl, this.shaderProgram);
+            tex.subRender!(this.gl, tex.program!);
         }
 
         // Global Resolution
-        let resolution: TEXResolution = tex.chainResolution ?? new TEXResolution(this.canvas.width, this.canvas.height)
-        let resolutionLocation: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, "u_resolution")!
+        let resolution: TEXResolution = this.resolutionFor(tex)
+        let resolutionLocation: WebGLUniformLocation = this.gl.getUniformLocation(tex.program!, "u_resolution")!
         this.gl.uniform2i(resolutionLocation, resolution.width, resolution.height)
         
         // Bools
         const uniformBools: Record<string, boolean> = tex.uniformBools();
         for (var key in uniformBools) {
             let value: Boolean = uniformBools[key];
-            let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
+            let location: WebGLUniformLocation = this.gl.getUniformLocation(tex.program!, key)!;
             this.gl.uniform1i(location, value ? 1 : 0);
         }
 
@@ -170,7 +237,7 @@ class TEXRender {
         const uniformInts: Record<string, number> = tex.uniformInts();
         for (var key in uniformInts) {
             let value: number = uniformInts[key];
-            let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
+            let location: WebGLUniformLocation = this.gl.getUniformLocation(tex.program!, key)!;
             this.gl.uniform1i(location, value);
         }
 
@@ -178,7 +245,7 @@ class TEXRender {
         const uniformFloats: Record<string, number> = tex.uniformFloats();
         for (var key in uniformFloats) {
             let value: number = uniformFloats[key];
-            let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
+            let location: WebGLUniformLocation = this.gl.getUniformLocation(tex.program!, key)!;
             this.gl.uniform1f(location, value);
         }
 
@@ -186,7 +253,7 @@ class TEXRender {
         const uniformPositions: Record<string, TEXPosition> = tex.uniformPositions();
         for (var key in uniformPositions) {
             let value: TEXPosition = uniformPositions[key];
-            let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
+            let location: WebGLUniformLocation = this.gl.getUniformLocation(tex.program!, key)!;
             this.gl.uniform2f(location, value.x, value.y);
         }
 
@@ -194,7 +261,7 @@ class TEXRender {
         const uniformResolutions: Record<string, TEXResolution> = tex.uniformResolutions();
         for (var key in uniformResolutions) {
             let value: TEXResolution = uniformResolutions[key];
-            let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
+            let location: WebGLUniformLocation = this.gl.getUniformLocation(tex.program!, key)!;
             this.gl.uniform2i(location, value.width, value.height);
         }
 
@@ -202,7 +269,7 @@ class TEXRender {
         const uniformColors: Record<string, TEXColor> = tex.uniformColors();
         for (var key in uniformColors) {
             let value: TEXColor = uniformColors[key];
-            let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
+            let location: WebGLUniformLocation = this.gl.getUniformLocation(tex.program!, key)!;
             this.gl.uniform4f(location, value.red, value.green, value.blue, value.alpha);
         }
 
@@ -211,7 +278,7 @@ class TEXRender {
         for (var key in uniformArrayOfFloats) {
             let array: number[] = uniformArrayOfFloats[key];
             let list: Float32List = new Float32Array(array);
-            let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
+            let location: WebGLUniformLocation = this.gl.getUniformLocation(tex.program!, key)!;
             this.gl.uniform1fv(location, list);
         }
 
@@ -228,7 +295,7 @@ class TEXRender {
                 flatArray.push(color.alpha);
             }            
             let list: Float32List = new Float32Array(flatArray);
-            let location: WebGLUniformLocation = this.gl.getUniformLocation(this.shaderProgram, key)!;
+            let location: WebGLUniformLocation = this.gl.getUniformLocation(tex.program!, key)!;
             this.gl.uniform4fv(location, list)
         }
 
@@ -240,16 +307,6 @@ class TEXRender {
             this.gl.drawArrays(this.gl.TRIANGLE_STRIP, offset, vertexCount);
         }
 
-    }
-
-    // Clear
-
-    clear(gl: WebGLRenderingContext) {
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
-        gl.clearDepth(1.0);
-        gl.enable(gl.DEPTH_TEST);
-        gl.depthFunc(gl.LEQUAL);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     }
 
 }

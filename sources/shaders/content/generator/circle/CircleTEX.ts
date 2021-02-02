@@ -3,7 +3,7 @@ class CircleTEX extends TEXGenerator {
 
     _radius: number = 0.25
     public get radius(): number { return this._radius }
-    public set radius(value: number) { this._radius = value; super.refresh(); }
+    public set radius(value: number) { this._radius = value; super.didEdit(); }
 
     constructor(resolution: TEXResolution) {
         
@@ -14,7 +14,7 @@ class CircleTEX extends TEXGenerator {
             uniforms["u_radius"] = this.radius;
             return uniforms
         }
-        super.refresh()
+        super.didEdit()
 
     }
 

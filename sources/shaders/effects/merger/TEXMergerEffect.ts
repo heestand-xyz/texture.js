@@ -43,29 +43,29 @@ class TEXMergerEffect extends TEXEffect {
     }
 
     connect(tex: TEX, index: number) {
-        tex.outputs.push(this)
-        if (this.inputs.length > 0) {
-            this.inputs.splice(index, 0, tex)
+        tex.texOutputs.push(this)
+        if (this.texInputs.length > 0) {
+            this.texInputs.splice(index, 0, tex)
         } else {
-            this.inputs.push(tex)
+            this.texInputs.push(tex)
         }
-        super.refreshInputs()
+        super.didConnect()
     }
 
     disconnect(tex: TEX, index: number) {
-        for (let index = 0; index < tex.outputs.length; index++) {
-            const output: TEX = tex.outputs[index];
+        for (let index = 0; index < tex.texOutputs.length; index++) {
+            const output: TEX = tex.texOutputs[index];
             if (output == this) {
-                tex.outputs.splice(index, 1);
+                tex.texOutputs.splice(index, 1);
                 break;
             }
         }
-        if (this.inputs.length > 1) {
-            this.inputs.splice(index, 1)
+        if (this.texInputs.length > 1) {
+            this.texInputs.splice(index, 1)
         } else {
-            this.inputs = []
+            this.texInputs = []
         }
-        super.refreshInputs();
+        super.didConnect();
     }
 
 }

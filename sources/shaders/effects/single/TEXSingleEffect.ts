@@ -28,21 +28,21 @@ class TEXSingleEffect extends TEXEffect {
     }
 
     connect(tex: TEX) {
-        tex.outputs.push(this)
-        this.inputs = [tex]
-        super.refreshInputs()
+        tex.texOutputs.push(this)
+        this.texInputs = [tex]
+        super.didConnect()
     }
 
     disconnect(tex: TEX) {
-        for (let index = 0; index < tex.outputs.length; index++) {
-            const output: TEX = tex.outputs[index];
+        for (let index = 0; index < tex.texOutputs.length; index++) {
+            const output: TEX = tex.texOutputs[index];
             if (output == this) {
-                tex.outputs.splice(index, 1);
+                tex.texOutputs.splice(index, 1);
                 break;
             }
         }
-        this.inputs = []
-        super.refreshInputs();
+        this.texInputs = []
+        super.didConnect();
     }
 
 }

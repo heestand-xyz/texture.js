@@ -3,15 +3,15 @@ class TEXGenerator extends TEXContent {
 
     _backgroundColor: TEXColor = new TEXColor(0.0, 0.0, 0.0, 1.0)
     public get backgroundColor(): TEXColor { return this._backgroundColor }
-    public set backgroundColor(value: TEXColor) { this._backgroundColor = value; super.refresh(); }
+    public set backgroundColor(value: TEXColor) { this._backgroundColor = value; super.didEdit(); }
     
     _color: TEXColor = new TEXColor(1.0, 1.0, 1.0, 1.0)
     public get color(): TEXColor { return this._color }
-    public set color(value: TEXColor) { this._color = value; super.refresh(); }
+    public set color(value: TEXColor) { this._color = value; super.didEdit(); }
 
     _position: TEXPosition = new TEXPosition(0.0, 0.0)
     public get position(): TEXPosition { return this._position }
-    public set position(value: TEXPosition) { this._position = value; super.refresh(); }
+    public set position(value: TEXPosition) { this._position = value; super.didEdit(); }
 
     constructor(shaderName: string, resolution: TEXResolution) {
 
@@ -30,7 +30,7 @@ class TEXGenerator extends TEXContent {
             uniforms["u_color"] = this.color;
             return uniforms
         }
-        super.refresh()
+        super.didEdit()
 
     }
 

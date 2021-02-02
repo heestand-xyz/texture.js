@@ -5,7 +5,7 @@ class ImageTEX extends TEXResource {
 
     _imageResolution: TEXResolution | null = null
     public get imageResolution(): TEXResolution | null { return this._imageResolution }
-    public set imageResolution(value: TEXResolution | null) { this._imageResolution = value; super.refresh(); }
+    public set imageResolution(value: TEXResolution | null) { this._imageResolution = value; super.didEdit(); }
     
     constructor() {
         
@@ -31,7 +31,7 @@ class ImageTEX extends TEXResource {
     public loadImage(image: TexImageSource) {
         this.imageResolution = new TEXResolution(image!.width, image!.height)
         // this.resourceTexture = this.createTextureFromImage(image)
-        super.refresh()
+        super.didEdit()
     }
 
     createTextureFromImage(gl: WebGLRenderingContext, image: TexImageSource): WebGLTexture {

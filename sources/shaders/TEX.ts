@@ -6,22 +6,45 @@ class TEX {
 
     shaderPath: string
     
-    texture!: WebGLTexture
-    framebuffer!: WebGLFramebuffer
+    texture?: WebGLTexture
+    framebuffer?: WebGLFramebuffer
 
-    inputs: TEX[] = []
-    outputs: TEX[] = []
+    program?: WebGLProgram
 
-    public get chainResolution(): TEXResolution | null {
+    texOutputs: TEX[] = []
+
+    render?: TEXRender
+
+    // editIndex: number = 0
+    // get totalEditIndex(): number {
+    //     if (this instanceof TEXContent) {
+    //         return this.editIndex
+    //     } else if (this instanceof TEXEffect) {
+    //         let texEffect = this as TEXEffect
+    //         var inputsEditIndex: number = 0
+    //         for (let index = 0; index < texEffect.texInputs.length; index++) {
+    //             const texInput = texEffect.texInputs[index];
+    //             inputsEditIndex += texInput.editIndex
+    //         }
+    //         return inputsEditIndex
+    //     }
+    //     return 0
+    // }
+    // renderIndex: number = 0
+    // get renderInSync(): boolean {
+    //     return this.editIndex == this.renderIndex
+    // }
+
+    get firstResolution(): TEXResolution | null {
         if (this instanceof TEXContent) {
-            let contentTex = this as TEXContent
-            if (contentTex.resolution != null) {
-                return contentTex.resolution!
+            let texContent = this as TEXContent
+            if (texContent.resolution != null) {
+                return texContent.resolution!
             }
         } else if (this instanceof TEXEffect) {
-            let effectTex = this as TEXEffect
-            if (effectTex.inputs.length > 0) {
-                return effectTex.inputs[0].chainResolution
+            let texEffect = this as TEXEffect
+            if (texEffect.texInputs.length > 0) {
+                return texEffect.texInputs[0].firstResolution
             }
         }
         return null
@@ -39,25 +62,30 @@ class TEX {
 
     subRender?: (gl: WebGLRenderingContext, program: WebGLProgram) => void
 
-    render?: TEXRender
-
     constructor(shaderPath: string) {
         
-        console.log(this.constructor.name + " - " + "Created")
+        console.log(this.constructor.name + " - " + "Init")
 
         this.shaderPath = shaderPath
 
     }
 
-    refreshInputs() {
-        console.log(this.constructor.name + " - " + "Refresh Inputs")
-        console.log()
-        this.refresh()
-    }
+    // Setup
 
-    refresh() {
-        console.log(this.constructor.name + " - " + "Refresh")
-        this.render?.draw()
+    setup(gl: WebGLRenderingContext, done: () => void) {
+
+        this.loadShader((fragmentShaderSource: string) : void => {
+
+            let vertexShaderSource: string = "attribute vec4 position; void main() { gl_Position = position; }"
+            let vertexShader: WebGLShader = this.createShader(gl, vertexShaderSource, gl.VERTEX_SHADER)
+            let fragmentShader: WebGLShader = this.createShader(gl, fragmentShaderSource, gl.FRAGMENT_SHADER)
+    
+            this.program = this.createProgram(gl, vertexShader, fragmentShader)
+    
+            done()
+
+        })
+
     }
     
     // Load
@@ -81,35 +109,115 @@ class TEX {
         rawFile.send(null);
     }
 
-    // createEmptyTexture(gl: WebGLRenderingContext, resolution: TEXResolution): WebGLTexture {
-    //     const emptyTexture = gl.createTexture()!;
-    //     gl.bindTexture(gl.TEXTURE_2D, emptyTexture);
-    //     {
-    //         const internalFormat = gl.RGBA;
-    //         const border = 0;
-    //         const level = 0;
-    //         const format = gl.RGBA;
-    //         const type = gl.UNSIGNED_BYTE;
-    //         const data = null;
-    //         gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, resolution.width, resolution.height, border, format, type, data);
-    //         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    //         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    //         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    //     }
-    //     return emptyTexture
-    // }
+    // Update
 
-    // createFramebuffer(gl: WebGLRenderingContext, texture: WebGLTexture, index: number = 0): WebGLFramebuffer {
+    didConnect() {
+        console.log(this.constructor.name + " - " + "Did Connect")
+        console.log()
+        const self = this
+        this.reverseContentCrawl(function _(tex, done) {
+            console.log(self.constructor.name + " - " + "Did Connect - Crawl:", tex.constructor.name)
+            tex.downstreamRefresh(self)
+            done()
+        }, function completion() {})
+    }
 
-    //     const framebuffer: WebGLFramebuffer = gl.createFramebuffer()!;
-    //     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    didEdit() {
+        console.log(this.constructor.name + " - " + "Did Edit")
+        // this.editIndex += 1
+        this.render?.draw()
+        this.refresh()
+    }
 
-    //     const attachmentPoint = gl.COLOR_ATTACHMENT0;
-    //     gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, texture, 0);
+    downstreamRefresh(fromTex: TEX) {
+        console.log(this.constructor.name + " - " + "Downstream Refresh from:", fromTex.constructor.name)
+        this.refresh()
+    }
+
+    upstreamRefresh(fromTex: TEX) {
+        console.log(this.constructor.name + " - " + "Upstream Refresh from:", fromTex.constructor.name)
+        this.refresh()
+    }
+
+    refresh() {
+        console.log(this.constructor.name + " - " + "Refresh")
+        this.render?.draw()
+        for (let index = 0; index < this.texOutputs.length; index++) {
+            const texOutput = this.texOutputs[index];
+            texOutput.upstreamRefresh(this)
+        }
+    }
+
+    // Create
+
+    createShader(gl: WebGLRenderingContext, sourceCode: string, type: number): WebGLShader {
+        var shader: WebGLShader = gl.createShader(type)!;
+        gl.shaderSource(shader, sourceCode);
+        gl.compileShader(shader);
         
-    //     return framebuffer
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            let info = gl.getShaderInfoLog(shader);
+            gl.deleteShader(shader)
+            console.log("GL Shader Error:", info)
+            throw 'GL Shader Error.\n\n' + info;
+        }
+        return shader;
+    }
 
-    // }
+    createProgram(gl: WebGLRenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader) {
+        
+        const shaderProgram = gl.createProgram()!;
+        gl.attachShader(shaderProgram, vertexShader);
+        gl.attachShader(shaderProgram, fragmentShader);
+        gl.linkProgram(shaderProgram);
+      
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+            let info = gl.getProgramInfoLog(shaderProgram)
+            console.log("GL Program Error:", info)
+            throw 'GL Program Error.\n\n' + info;
+        }
+      
+        return shaderProgram;
+    }
+
+    // Crawl
+
+    reverseCrawl(callback: (tex: TEX, done: () => void) => void, completion: () => void) {
+        if (this instanceof TEXContent) {
+            callback(this, function _() {
+                completion()
+            })
+        } else if (this instanceof TEXEffect) {
+            let texEffect = this as TEXEffect
+            var leftCount: number = texEffect.texInputs.length
+            if (leftCount == 0) {
+                callback(this, function _() {
+                    completion()
+                })
+            }
+            for (let index = 0; index < texEffect.texInputs.length; index++) {
+                const inputTex = texEffect.texInputs[index];
+                inputTex.reverseCrawl(callback, function _() {
+                    leftCount -= 1
+                    if (leftCount == 0) {
+                        callback(texEffect, function _() {
+                            completion()
+                        })
+                    }
+                })
+            }
+        }
+    }
+
+    reverseContentCrawl(callback: (tex: TEX, done: () => void) => void, completion: () => void) {
+        this.reverseCrawl(function _(tex, done) {
+            if (tex instanceof TEXContent) {
+                callback(tex, done)
+            } else {
+                done()
+            }
+        }, completion)
+    }
 
     // activateTexture(texture: WebGLTexture, index: number) {
 
@@ -165,20 +273,6 @@ class TEX {
     //         }
     //     }
     //     return 0
-    // }
-
-    // Layout
-
-    // public layout() {
-    //     this.resolution = new TEXResolution(this.canvas.width, this.canvas.height)
-    //     if (this.texture != null) {
-    //         this.gl.deleteTexture(this.texture)
-    //     }
-    //     this.texture = this.createEmptyTexture(this.gl, this.resolution)
-    //     if (this.framebuffer != null) {
-    //         this.gl.deleteFramebuffer(this.framebuffer)
-    //     }
-    //     this.framebuffer = this.createFramebuffer(this.gl, this.texture)
     // }
 
 }

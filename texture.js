@@ -14,146 +14,190 @@ var __extends = (this && this.__extends) || (function () {
 })();
 var TEXRender = /** @class */ (function () {
     function TEXRender(tex, canvas) {
-        var _this = this;
+        console.log(tex.constructor.name + " (Render) - " + "Init");
         this.tex = tex;
         tex.render = this;
         this.canvas = canvas;
         this.gl = this.canvas.getContext("webgl");
-        tex.loadShader(function (source) {
-            console.log(_this.tex.constructor.name + " (Render) - " + "Loaded");
-            _this.setup(source);
-            _this.draw();
+        this.quadBuffer = this.createQuadBuffer(this.gl);
+        var self = this;
+        tex.reverseCrawl(function _(crawlTex, done) {
+            crawlTex.setup(self.gl, done);
+        }, function completion() {
+            console.log(tex.constructor.name + " (Render) - " + "Setup");
+            self.draw();
+            // tex.reverseContentCrawl(function _(crawlTex, done) {
+            //     crawlTex.refresh()
+            //     done()
+            // }, function completion() {})
         });
     }
-    // Setup
-    TEXRender.prototype.setup = function (fragmentShaderSource) {
-        var vertexShaderSource = "attribute vec4 position; void main() { gl_Position = position; }";
-        var vertexShader = this.createShader(this.gl, vertexShaderSource, this.gl.VERTEX_SHADER);
-        var fragmentShader = this.createShader(this.gl, fragmentShaderSource, this.gl.FRAGMENT_SHADER);
-        this.shaderProgram = this.createProgram(this.gl, vertexShader, fragmentShader);
-        this.quadBuffer = this.createQuadBuffer(this.gl);
-    };
     // Create
-    TEXRender.prototype.createShader = function (gl, sourceCode, type) {
-        var shader = gl.createShader(type);
-        gl.shaderSource(shader, sourceCode);
-        gl.compileShader(shader);
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-            var info = gl.getShaderInfoLog(shader);
-            gl.deleteShader(shader);
-            console.log("GL Shader Error:", info);
-            throw 'GL Shader Error.\n\n' + info;
-        }
-        return shader;
-    };
-    TEXRender.prototype.createProgram = function (gl, vertexShader, fragmentShader) {
-        var shaderProgram = gl.createProgram();
-        gl.attachShader(shaderProgram, vertexShader);
-        gl.attachShader(shaderProgram, fragmentShader);
-        gl.linkProgram(shaderProgram);
-        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-            var info = gl.getProgramInfoLog(shaderProgram);
-            console.log("GL Program Error:", info);
-            throw 'GL Program Error.\n\n' + info;
-        }
-        return shaderProgram;
-    };
     TEXRender.prototype.createQuadBuffer = function (gl) {
-        // Create a buffer for the square's positions.
         var positionBuffer = gl.createBuffer();
-        // Select the positionBuffer as the one to apply buffer
-        // operations to from here out.
         gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-        // Now create an array of positions for the square.
         var positions = [
             -1.0, 1.0,
             1.0, 1.0,
             -1.0, -1.0,
             1.0, -1.0,
         ];
-        // Now pass the list of positions into WebGL to build the
-        // shape. We do this by creating a Float32Array from the
-        // JavaScript array, then use it to fill the current buffer.
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
         return positionBuffer;
     };
-    // Render
-    TEXRender.prototype.draw = function () {
-        console.log(this.tex.constructor.name + " (Render) - " + "Draw");
-        // console.log(this.shaderPath + " - " + "draw")
-        // this.renderTo(this.framebuffer)
-        this.drawTo(this.tex, null);
-        // this.tex.outputs.forEach(output => {
-        //     output.pushPixels(this, output)
-        // });
+    TEXRender.prototype.createEmptyTexture = function (gl, resolution) {
+        var emptyTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, emptyTexture);
+        {
+            var internalFormat = gl.RGBA;
+            var border = 0;
+            var level = 0;
+            var format = gl.RGBA;
+            var type = gl.UNSIGNED_BYTE;
+            var data = null;
+            gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, resolution.width, resolution.height, border, format, type, data);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        }
+        return emptyTexture;
     };
-    TEXRender.prototype.drawTo = function (tex, framebuffer) {
+    TEXRender.prototype.createFramebuffer = function (gl, texture, index) {
+        if (index === void 0) { index = 0; }
+        var framebuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+        var attachmentPoint = gl.COLOR_ATTACHMENT0;
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, texture, 0);
+        return framebuffer;
+    };
+    // Resolution
+    TEXRender.prototype.resolutionFor = function (tex) {
         var _a;
+        return (_a = tex.firstResolution) !== null && _a !== void 0 ? _a : new TEXResolution(this.canvas.width, this.canvas.height);
+    };
+    // Clear
+    TEXRender.prototype.clear = function (gl) {
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clearDepth(1.0);
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    };
+    // Prep
+    TEXRender.prototype.prepTexture = function (tex) {
+        if (tex.texture != null) {
+            this.gl.deleteTexture(tex.texture);
+        }
+        tex.texture = this.createEmptyTexture(this.gl, this.resolutionFor(tex));
+        return tex.texture;
+    };
+    TEXRender.prototype.prepFramebuffer = function (tex) {
+        var _a;
+        var texture = (_a = tex.texture) !== null && _a !== void 0 ? _a : this.prepTexture(tex);
+        if (tex.framebuffer != null) {
+            this.gl.deleteFramebuffer(tex.framebuffer);
+        }
+        tex.framebuffer = this.createFramebuffer(this.gl, texture);
+        return tex.framebuffer;
+    };
+    // Draw
+    TEXRender.prototype.draw = function () {
+        console.log(this.tex.constructor.name + " (Render) - " + "Draw >->->->");
+        if (this.tex instanceof TEXEffect) {
+            var texEffect = this.tex;
+            this.drawInputs(texEffect);
+        }
+        this.drawTo(this.tex, null);
+    };
+    TEXRender.prototype.drawInputs = function (texEffect) {
+        console.log(this.tex.constructor.name + " (Render) - " + "Draw Inputs >->->", texEffect.constructor.name);
+        for (var index = 0; index < texEffect.texInputs.length; index++) {
+            var texEffectInput = texEffect.texInputs[index];
+            console.log(this.tex.constructor.name + " (Render) - " + "Draw Input >->", index, texEffect.constructor.name, ">>>", texEffectInput.constructor.name);
+            if (texEffectInput instanceof TEXEffect) {
+                var texEffectInputEffect = texEffectInput;
+                this.drawInputs(texEffectInputEffect);
+            }
+            var inputTexture = this.prepTexture(texEffectInput);
+            var inputFramebuffer = this.prepFramebuffer(texEffectInput);
+            this.drawTo(texEffectInput, inputFramebuffer);
+            if (index == 0) {
+                this.gl.activeTexture(this.gl.TEXTURE0);
+            }
+            else if (index == 1) {
+                this.gl.activeTexture(this.gl.TEXTURE1);
+            }
+        }
+    };
+    TEXRender.prototype.drawTo = function (tex, framebufferTarget) {
+        if (tex.program == null) {
+            console.log("texture.js TEXRender draw failed: TEX (" + tex.constructor.name + ") shader program is null.");
+            return;
+        }
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, framebufferTarget);
         this.clear(this.gl);
-        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, framebuffer);
         // Vertex
         {
-            var numComponents = 2; // pull out 2 values per iteration
-            var type = this.gl.FLOAT; // the data in the buffer is 32bit floats
-            var normalize = false; // don't normalize
-            var stride = 0; // how many bytes to get from one set of values to the next
-            // 0 = use type and numComponents above
-            var attribPosition = this.gl.getAttribLocation(this.shaderProgram, 'position');
-            var offset = 0; // how many bytes inside the buffer to start from
+            var numComponents = 2;
+            var type = this.gl.FLOAT;
+            var normalize = false;
+            var stride = 0;
+            var attribPosition = this.gl.getAttribLocation(tex.program, 'position');
+            var offset = 0;
             this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.quadBuffer);
             this.gl.vertexAttribPointer(attribPosition, numComponents, type, normalize, stride, offset);
             this.gl.enableVertexAttribArray(attribPosition);
         }
         // Program
-        this.gl.useProgram(this.shaderProgram);
+        this.gl.useProgram(tex.program);
         // Sub Render
         if (tex.subRender != undefined) {
-            tex.subRender(this.gl, this.shaderProgram);
+            tex.subRender(this.gl, tex.program);
         }
         // Global Resolution
-        var resolution = (_a = tex.chainResolution) !== null && _a !== void 0 ? _a : new TEXResolution(this.canvas.width, this.canvas.height);
-        var resolutionLocation = this.gl.getUniformLocation(this.shaderProgram, "u_resolution");
+        var resolution = this.resolutionFor(tex);
+        var resolutionLocation = this.gl.getUniformLocation(tex.program, "u_resolution");
         this.gl.uniform2i(resolutionLocation, resolution.width, resolution.height);
         // Bools
         var uniformBools = tex.uniformBools();
         for (var key in uniformBools) {
             var value = uniformBools[key];
-            var location_1 = this.gl.getUniformLocation(this.shaderProgram, key);
+            var location_1 = this.gl.getUniformLocation(tex.program, key);
             this.gl.uniform1i(location_1, value ? 1 : 0);
         }
         // Ints
         var uniformInts = tex.uniformInts();
         for (var key in uniformInts) {
             var value = uniformInts[key];
-            var location_2 = this.gl.getUniformLocation(this.shaderProgram, key);
+            var location_2 = this.gl.getUniformLocation(tex.program, key);
             this.gl.uniform1i(location_2, value);
         }
         // Floats
         var uniformFloats = tex.uniformFloats();
         for (var key in uniformFloats) {
             var value = uniformFloats[key];
-            var location_3 = this.gl.getUniformLocation(this.shaderProgram, key);
+            var location_3 = this.gl.getUniformLocation(tex.program, key);
             this.gl.uniform1f(location_3, value);
         }
         // Positions
         var uniformPositions = tex.uniformPositions();
         for (var key in uniformPositions) {
             var value = uniformPositions[key];
-            var location_4 = this.gl.getUniformLocation(this.shaderProgram, key);
+            var location_4 = this.gl.getUniformLocation(tex.program, key);
             this.gl.uniform2f(location_4, value.x, value.y);
         }
         // Resolutions
         var uniformResolutions = tex.uniformResolutions();
         for (var key in uniformResolutions) {
             var value = uniformResolutions[key];
-            var location_5 = this.gl.getUniformLocation(this.shaderProgram, key);
+            var location_5 = this.gl.getUniformLocation(tex.program, key);
             this.gl.uniform2i(location_5, value.width, value.height);
         }
         // Colors
         var uniformColors = tex.uniformColors();
         for (var key in uniformColors) {
             var value = uniformColors[key];
-            var location_6 = this.gl.getUniformLocation(this.shaderProgram, key);
+            var location_6 = this.gl.getUniformLocation(tex.program, key);
             this.gl.uniform4f(location_6, value.red, value.green, value.blue, value.alpha);
         }
         // Array of Floats
@@ -161,7 +205,7 @@ var TEXRender = /** @class */ (function () {
         for (var key in uniformArrayOfFloats) {
             var array = uniformArrayOfFloats[key];
             var list = new Float32Array(array);
-            var location_7 = this.gl.getUniformLocation(this.shaderProgram, key);
+            var location_7 = this.gl.getUniformLocation(tex.program, key);
             this.gl.uniform1fv(location_7, list);
         }
         // Array of Colors
@@ -177,7 +221,7 @@ var TEXRender = /** @class */ (function () {
                 flatArray.push(color.alpha);
             }
             var list = new Float32Array(flatArray);
-            var location_8 = this.gl.getUniformLocation(this.shaderProgram, key);
+            var location_8 = this.gl.getUniformLocation(tex.program, key);
             this.gl.uniform4fv(location_8, list);
         }
         // Final
@@ -187,21 +231,12 @@ var TEXRender = /** @class */ (function () {
             this.gl.drawArrays(this.gl.TRIANGLE_STRIP, offset, vertexCount);
         }
     };
-    // Clear
-    TEXRender.prototype.clear = function (gl) {
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
-        gl.clearDepth(1.0);
-        gl.enable(gl.DEPTH_TEST);
-        gl.depthFunc(gl.LEQUAL);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    };
     return TEXRender;
 }());
 var onlineShaderSourceFolderURL = "https://heestand-xyz.github.io/texture.js/sources/shaders/";
 var TEX = /** @class */ (function () {
     function TEX(shaderPath) {
-        this.inputs = [];
-        this.outputs = [];
+        this.texOutputs = [];
         this.uniformBools = function _() { return {}; };
         this.uniformInts = function _() { return {}; };
         this.uniformFloats = function _() { return {}; };
@@ -210,21 +245,40 @@ var TEX = /** @class */ (function () {
         this.uniformColors = function _() { return {}; };
         this.uniformArrayOfFloats = function _() { return {}; };
         this.uniformArrayOfColors = function _() { return {}; };
-        console.log(this.constructor.name + " - " + "Created");
+        console.log(this.constructor.name + " - " + "Init");
         this.shaderPath = shaderPath;
     }
-    Object.defineProperty(TEX.prototype, "chainResolution", {
+    Object.defineProperty(TEX.prototype, "firstResolution", {
+        // editIndex: number = 0
+        // get totalEditIndex(): number {
+        //     if (this instanceof TEXContent) {
+        //         return this.editIndex
+        //     } else if (this instanceof TEXEffect) {
+        //         let texEffect = this as TEXEffect
+        //         var inputsEditIndex: number = 0
+        //         for (let index = 0; index < texEffect.texInputs.length; index++) {
+        //             const texInput = texEffect.texInputs[index];
+        //             inputsEditIndex += texInput.editIndex
+        //         }
+        //         return inputsEditIndex
+        //     }
+        //     return 0
+        // }
+        // renderIndex: number = 0
+        // get renderInSync(): boolean {
+        //     return this.editIndex == this.renderIndex
+        // }
         get: function () {
             if (this instanceof TEXContent) {
-                var contentTex = this;
-                if (contentTex.resolution != null) {
-                    return contentTex.resolution;
+                var texContent = this;
+                if (texContent.resolution != null) {
+                    return texContent.resolution;
                 }
             }
             else if (this instanceof TEXEffect) {
-                var effectTex = this;
-                if (effectTex.inputs.length > 0) {
-                    return effectTex.inputs[0].chainResolution;
+                var texEffect = this;
+                if (texEffect.texInputs.length > 0) {
+                    return texEffect.texInputs[0].firstResolution;
                 }
             }
             return null;
@@ -232,15 +286,16 @@ var TEX = /** @class */ (function () {
         enumerable: false,
         configurable: true
     });
-    TEX.prototype.refreshInputs = function () {
-        console.log(this.constructor.name + " - " + "Refresh Inputs");
-        console.log();
-        this.refresh();
-    };
-    TEX.prototype.refresh = function () {
-        var _a;
-        console.log(this.constructor.name + " - " + "Refresh");
-        (_a = this.render) === null || _a === void 0 ? void 0 : _a.draw();
+    // Setup
+    TEX.prototype.setup = function (gl, done) {
+        var _this = this;
+        this.loadShader(function (fragmentShaderSource) {
+            var vertexShaderSource = "attribute vec4 position; void main() { gl_Position = position; }";
+            var vertexShader = _this.createShader(gl, vertexShaderSource, gl.VERTEX_SHADER);
+            var fragmentShader = _this.createShader(gl, fragmentShaderSource, gl.FRAGMENT_SHADER);
+            _this.program = _this.createProgram(gl, vertexShader, fragmentShader);
+            done();
+        });
     };
     // Load
     TEX.prototype.loadShader = function (loaded) {
@@ -261,6 +316,104 @@ var TEX = /** @class */ (function () {
             }
         };
         rawFile.send(null);
+    };
+    // Update
+    TEX.prototype.didConnect = function () {
+        console.log(this.constructor.name + " - " + "Did Connect");
+        console.log();
+        var self = this;
+        this.reverseContentCrawl(function _(tex, done) {
+            console.log(self.constructor.name + " - " + "Did Connect - Crawl:", tex.constructor.name);
+            tex.downstreamRefresh(self);
+            done();
+        }, function completion() { });
+    };
+    TEX.prototype.didEdit = function () {
+        var _a;
+        console.log(this.constructor.name + " - " + "Did Edit");
+        // this.editIndex += 1
+        (_a = this.render) === null || _a === void 0 ? void 0 : _a.draw();
+        this.refresh();
+    };
+    TEX.prototype.downstreamRefresh = function (fromTex) {
+        console.log(this.constructor.name + " - " + "Downstream Refresh from:", fromTex.constructor.name);
+        this.refresh();
+    };
+    TEX.prototype.upstreamRefresh = function (fromTex) {
+        console.log(this.constructor.name + " - " + "Upstream Refresh from:", fromTex.constructor.name);
+        this.refresh();
+    };
+    TEX.prototype.refresh = function () {
+        var _a;
+        console.log(this.constructor.name + " - " + "Refresh");
+        (_a = this.render) === null || _a === void 0 ? void 0 : _a.draw();
+        for (var index = 0; index < this.texOutputs.length; index++) {
+            var texOutput = this.texOutputs[index];
+            texOutput.upstreamRefresh(this);
+        }
+    };
+    // Create
+    TEX.prototype.createShader = function (gl, sourceCode, type) {
+        var shader = gl.createShader(type);
+        gl.shaderSource(shader, sourceCode);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            var info = gl.getShaderInfoLog(shader);
+            gl.deleteShader(shader);
+            console.log("GL Shader Error:", info);
+            throw 'GL Shader Error.\n\n' + info;
+        }
+        return shader;
+    };
+    TEX.prototype.createProgram = function (gl, vertexShader, fragmentShader) {
+        var shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, vertexShader);
+        gl.attachShader(shaderProgram, fragmentShader);
+        gl.linkProgram(shaderProgram);
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+            var info = gl.getProgramInfoLog(shaderProgram);
+            console.log("GL Program Error:", info);
+            throw 'GL Program Error.\n\n' + info;
+        }
+        return shaderProgram;
+    };
+    // Crawl
+    TEX.prototype.reverseCrawl = function (callback, completion) {
+        if (this instanceof TEXContent) {
+            callback(this, function _() {
+                completion();
+            });
+        }
+        else if (this instanceof TEXEffect) {
+            var texEffect_1 = this;
+            var leftCount = texEffect_1.texInputs.length;
+            if (leftCount == 0) {
+                callback(this, function _() {
+                    completion();
+                });
+            }
+            for (var index = 0; index < texEffect_1.texInputs.length; index++) {
+                var inputTex = texEffect_1.texInputs[index];
+                inputTex.reverseCrawl(callback, function _() {
+                    leftCount -= 1;
+                    if (leftCount == 0) {
+                        callback(texEffect_1, function _() {
+                            completion();
+                        });
+                    }
+                });
+            }
+        }
+    };
+    TEX.prototype.reverseContentCrawl = function (callback, completion) {
+        this.reverseCrawl(function _(tex, done) {
+            if (tex instanceof TEXContent) {
+                callback(tex, done);
+            }
+            else {
+                done();
+            }
+        }, completion);
     };
     return TEX;
 }());
@@ -290,24 +443,24 @@ var TEXGenerator = /** @class */ (function (_super) {
             uniforms["u_color"] = this.color;
             return uniforms;
         };
-        _super.prototype.refresh.call(_this);
+        _super.prototype.didEdit.call(_this);
         return _this;
     }
     Object.defineProperty(TEXGenerator.prototype, "backgroundColor", {
         get: function () { return this._backgroundColor; },
-        set: function (value) { this._backgroundColor = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._backgroundColor = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(TEXGenerator.prototype, "color", {
         get: function () { return this._color; },
-        set: function (value) { this._color = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._color = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(TEXGenerator.prototype, "position", {
         get: function () { return this._position; },
-        set: function (value) { this._position = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._position = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
@@ -323,12 +476,12 @@ var CircleTEX = /** @class */ (function (_super) {
             uniforms["u_radius"] = this.radius;
             return uniforms;
         };
-        _super.prototype.refresh.call(_this);
+        _super.prototype.didEdit.call(_this);
         return _this;
     }
     Object.defineProperty(CircleTEX.prototype, "radius", {
         get: function () { return this._radius; },
-        set: function (value) { this._radius = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._radius = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
@@ -392,36 +545,36 @@ var GradientTEX = /** @class */ (function (_super) {
             uniforms["u_colors"] = this.colorStops.map(function (x) { return x.color; });
             return uniforms;
         };
-        _super.prototype.refresh.call(_this);
+        _super.prototype.didEdit.call(_this);
         return _this;
     }
     Object.defineProperty(GradientTEX.prototype, "direction", {
         get: function () { return this._direction; },
-        set: function (value) { this._direction = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._direction = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(GradientTEX.prototype, "scale", {
         get: function () { return this._scale; },
-        set: function (value) { this._scale = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._scale = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(GradientTEX.prototype, "offset", {
         get: function () { return this._offset; },
-        set: function (value) { this._offset = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._offset = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(GradientTEX.prototype, "extend", {
         get: function () { return this._extend; },
-        set: function (value) { this._extend = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._extend = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(GradientTEX.prototype, "colorStops", {
         get: function () { return this._colorStops; },
-        set: function (value) { this._colorStops = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._colorStops = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
@@ -454,36 +607,36 @@ var NoiseTEX = /** @class */ (function (_super) {
             uniforms["u_colored"] = this.colored;
             return uniforms;
         };
-        _super.prototype.refresh.call(_this);
+        _super.prototype.didEdit.call(_this);
         return _this;
     }
     Object.defineProperty(NoiseTEX.prototype, "octaves", {
         get: function () { return this._octaves; },
-        set: function (value) { this._octaves = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._octaves = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(NoiseTEX.prototype, "persistence", {
         get: function () { return this._persistence; },
-        set: function (value) { this._persistence = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._persistence = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(NoiseTEX.prototype, "scale", {
         get: function () { return this._scale; },
-        set: function (value) { this._scale = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._scale = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(NoiseTEX.prototype, "zPosition", {
         get: function () { return this._zPosition; },
-        set: function (value) { this._zPosition = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._zPosition = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(NoiseTEX.prototype, "colored", {
         get: function () { return this._colored; },
-        set: function (value) { this._colored = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._colored = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
@@ -494,7 +647,7 @@ var PolygonTEX = /** @class */ (function (_super) {
     __extends(PolygonTEX, _super);
     // _antiAliased: boolean = true
     // public get antiAliased(): boolean { return this._antiAliased }
-    // public set antiAliased(value: boolean) { this._antiAliased = value; super.refresh(); }
+    // public set antiAliased(value: boolean) { this._antiAliased = value; super.didEdit(); }
     function PolygonTEX(resolution) {
         var _this = _super.call(this, "content/generator/polygon/PolygonTEX.glsl", resolution) || this;
         _this._radius = 0.25;
@@ -518,30 +671,30 @@ var PolygonTEX = /** @class */ (function (_super) {
         //     uniforms["u_antiAliased"] = this.antiAliased;
         //     return uniforms
         // }
-        _super.prototype.refresh.call(_this);
+        _super.prototype.didEdit.call(_this);
         return _this;
     }
     Object.defineProperty(PolygonTEX.prototype, "radius", {
         get: function () { return this._radius; },
-        set: function (value) { this._radius = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._radius = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(PolygonTEX.prototype, "rotation", {
         get: function () { return this._rotation; },
-        set: function (value) { this._rotation = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._rotation = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(PolygonTEX.prototype, "vertexCount", {
         get: function () { return this._vertexCount; },
-        set: function (value) { this._vertexCount = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._vertexCount = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(PolygonTEX.prototype, "cornerRadius", {
         get: function () { return this._cornerRadius; },
-        set: function (value) { this._cornerRadius = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._cornerRadius = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
@@ -576,7 +729,7 @@ var ImageTEX = /** @class */ (function (_super) {
     }
     Object.defineProperty(ImageTEX.prototype, "imageResolution", {
         get: function () { return this._imageResolution; },
-        set: function (value) { this._imageResolution = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._imageResolution = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
@@ -591,7 +744,7 @@ var ImageTEX = /** @class */ (function (_super) {
     ImageTEX.prototype.loadImage = function (image) {
         this.imageResolution = new TEXResolution(image.width, image.height);
         // this.resourceTexture = this.createTextureFromImage(image)
-        _super.prototype.refresh.call(this);
+        _super.prototype.didEdit.call(this);
     };
     ImageTEX.prototype.createTextureFromImage = function (gl, image) {
         var texture = gl.createTexture();
@@ -612,7 +765,9 @@ var ImageTEX = /** @class */ (function (_super) {
 var TEXEffect = /** @class */ (function (_super) {
     __extends(TEXEffect, _super);
     function TEXEffect(shaderName) {
-        return _super.call(this, shaderName) || this;
+        var _this = _super.call(this, shaderName) || this;
+        _this.texInputs = [];
+        return _this;
     }
     return TEXEffect;
 }(TEX));
@@ -658,30 +813,30 @@ var TEXMergerEffect = /** @class */ (function (_super) {
         configurable: true
     });
     TEXMergerEffect.prototype.connect = function (tex, index) {
-        tex.outputs.push(this);
-        if (this.inputs.length > 0) {
-            this.inputs.splice(index, 0, tex);
+        tex.texOutputs.push(this);
+        if (this.texInputs.length > 0) {
+            this.texInputs.splice(index, 0, tex);
         }
         else {
-            this.inputs.push(tex);
+            this.texInputs.push(tex);
         }
-        _super.prototype.refreshInputs.call(this);
+        _super.prototype.didConnect.call(this);
     };
     TEXMergerEffect.prototype.disconnect = function (tex, index) {
-        for (var index_1 = 0; index_1 < tex.outputs.length; index_1++) {
-            var output = tex.outputs[index_1];
+        for (var index_1 = 0; index_1 < tex.texOutputs.length; index_1++) {
+            var output = tex.texOutputs[index_1];
             if (output == this) {
-                tex.outputs.splice(index_1, 1);
+                tex.texOutputs.splice(index_1, 1);
                 break;
             }
         }
-        if (this.inputs.length > 1) {
-            this.inputs.splice(index, 1);
+        if (this.texInputs.length > 1) {
+            this.texInputs.splice(index, 1);
         }
         else {
-            this.inputs = [];
+            this.texInputs = [];
         }
-        _super.prototype.refreshInputs.call(this);
+        _super.prototype.didConnect.call(this);
     };
     return TEXMergerEffect;
 }(TEXEffect));
@@ -719,20 +874,20 @@ var TEXSingleEffect = /** @class */ (function (_super) {
         configurable: true
     });
     TEXSingleEffect.prototype.connect = function (tex) {
-        tex.outputs.push(this);
-        this.inputs = [tex];
-        _super.prototype.refreshInputs.call(this);
+        tex.texOutputs.push(this);
+        this.texInputs = [tex];
+        _super.prototype.didConnect.call(this);
     };
     TEXSingleEffect.prototype.disconnect = function (tex) {
-        for (var index = 0; index < tex.outputs.length; index++) {
-            var output = tex.outputs[index];
+        for (var index = 0; index < tex.texOutputs.length; index++) {
+            var output = tex.texOutputs[index];
             if (output == this) {
-                tex.outputs.splice(index, 1);
+                tex.texOutputs.splice(index, 1);
                 break;
             }
         }
-        this.inputs = [];
-        _super.prototype.refreshInputs.call(this);
+        this.texInputs = [];
+        _super.prototype.didConnect.call(this);
     };
     return TEXSingleEffect;
 }(TEXEffect));
@@ -754,24 +909,24 @@ var ColorShiftTEX = /** @class */ (function (_super) {
             uniforms["u_tintColor"] = this.tintColor;
             return uniforms;
         };
-        _super.prototype.refresh.call(_this);
+        _super.prototype.didEdit.call(_this);
         return _this;
     }
     Object.defineProperty(ColorShiftTEX.prototype, "hue", {
         get: function () { return this._hue; },
-        set: function (value) { this._hue = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._hue = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(ColorShiftTEX.prototype, "saturation", {
         get: function () { return this._saturation; },
-        set: function (value) { this._saturation = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._saturation = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(ColorShiftTEX.prototype, "tintColor", {
         get: function () { return this._tintColor; },
-        set: function (value) { this._tintColor = value; _super.prototype.refresh.call(this); },
+        set: function (value) { this._tintColor = value; _super.prototype.didEdit.call(this); },
         enumerable: false,
         configurable: true
     });

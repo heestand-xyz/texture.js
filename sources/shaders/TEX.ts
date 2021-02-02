@@ -4,12 +4,14 @@ class TEX {
     
     static shaderFolder?: string
 
+    id: number
+
     shaderPath: string
     
-    texture?: WebGLTexture
-    framebuffer?: WebGLFramebuffer
+    // texture?: WebGLTexture
+    // framebuffer?: WebGLFramebuffer
 
-    program?: WebGLProgram
+    // program?: WebGLProgram
 
     texOutputs: TEX[] = []
 
@@ -66,13 +68,15 @@ class TEX {
         
         console.log(this.constructor.name + " - " + "Init")
 
+        this.id = Math.random()
+
         this.shaderPath = shaderPath
 
     }
 
     // Setup
 
-    setup(gl: WebGLRenderingContext, done: () => void) {
+    setup(gl: WebGLRenderingContext, completion: (program: WebGLProgram) => void) {
 
         this.loadShader((fragmentShaderSource: string) : void => {
 
@@ -80,9 +84,9 @@ class TEX {
             let vertexShader: WebGLShader = this.createShader(gl, vertexShaderSource, gl.VERTEX_SHADER)
             let fragmentShader: WebGLShader = this.createShader(gl, fragmentShaderSource, gl.FRAGMENT_SHADER)
     
-            this.program = this.createProgram(gl, vertexShader, fragmentShader)
+            const program: WebGLProgram = this.createProgram(gl, vertexShader, fragmentShader)
     
-            done()
+            completion(program)
 
         })
 
@@ -164,19 +168,19 @@ class TEX {
         return shader;
     }
 
-    createProgram(gl: WebGLRenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader) {
+    createProgram(gl: WebGLRenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
         
         const shaderProgram = gl.createProgram()!;
         gl.attachShader(shaderProgram, vertexShader);
         gl.attachShader(shaderProgram, fragmentShader);
         gl.linkProgram(shaderProgram);
-      
+        
         if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
             let info = gl.getProgramInfoLog(shaderProgram)
             console.log("GL Program Error:", info)
             throw 'GL Program Error.\n\n' + info;
         }
-      
+        
         return shaderProgram;
     }
 

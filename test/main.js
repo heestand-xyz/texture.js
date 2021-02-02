@@ -6,6 +6,8 @@ var canvasOne = document.getElementById("canvasOne");
 var canvasTwo = document.getElementById("canvasTwo");
 var canvasThree = document.getElementById("canvasThree");
 var canvasFour = document.getElementById("canvasFour");
+var canvasFive = document.getElementById("canvasFive");
+var canvasSix = document.getElementById("canvasSix");
 
 function resize() {
     canvasOne.width = canvasOne.clientWidth
@@ -16,6 +18,10 @@ function resize() {
     canvasThree.height = canvasThree.clientHeight
     canvasFour.width = canvasFour.clientWidth
     canvasFour.height = canvasFour.clientHeight
+    canvasFive.width = canvasFive.clientWidth
+    canvasFive.height = canvasFive.clientHeight
+    canvasSix.width = canvasSix.clientWidth
+    canvasSix.height = canvasSix.clientHeight
 }
 resize()
 
@@ -28,7 +34,7 @@ gradientTex.colorStops = [
 new TEXRender(gradientTex, canvasOne)
 
 const polygonTex = new PolygonTEX()
-polygonTex.color = new TEXColor(1.0, 0.5, 0.0)
+polygonTex.color = new TEXColor(0.0, 0.5, 1.0)
 new TEXRender(polygonTex, canvasTwo)
 
 const blendTex = new BlendTEX()
@@ -36,10 +42,21 @@ blendTex.inputA = gradientTex
 blendTex.inputB = polygonTex
 new TEXRender(blendTex, canvasThree)
 
-const colorShiftTex = new ColorShiftTEX()
-colorShiftTex.input = blendTex
-colorShiftTex.saturation = 0.0
-new TEXRender(colorShiftTex, canvasFour)
+const colorShiftTex1 = new ColorShiftTEX()
+colorShiftTex1.input = blendTex
+colorShiftTex1.hue = 0.5
+new TEXRender(colorShiftTex1, canvasFour)
+
+const colorShiftTex2 = new ColorShiftTEX()
+colorShiftTex2.input = blendTex
+colorShiftTex2.saturation = 0.0
+new TEXRender(colorShiftTex2, canvasFive)
+
+const colorShiftTex3 = new ColorShiftTEX()
+colorShiftTex3.input = blendTex
+colorShiftTex1.hue = 0.5
+colorShiftTex3.saturation = 2.0
+new TEXRender(colorShiftTex3, canvasSix)
 
 // const imageTex = new ImageTEX(canvasThree)
 // imageTex.loadImageURL("http://heestand.xyz/assets/images/kite.jpg")

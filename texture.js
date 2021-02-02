@@ -14,6 +14,7 @@ var __extends = (this && this.__extends) || (function () {
 })();
 var TEXRender = /** @class */ (function () {
     function TEXRender(tex, canvas) {
+        this.texPrograms = {};
         console.log(tex.constructor.name + " (Render) - " + "Init");
         this.tex = tex;
         tex.render = this;
@@ -22,14 +23,13 @@ var TEXRender = /** @class */ (function () {
         this.quadBuffer = this.createQuadBuffer(this.gl);
         var self = this;
         tex.reverseCrawl(function _(crawlTex, done) {
-            crawlTex.setup(self.gl, done);
+            crawlTex.setup(self.gl, function completion(program) {
+                self.texPrograms[crawlTex.id] = program;
+                done();
+            });
         }, function completion() {
             console.log(tex.constructor.name + " (Render) - " + "Setup");
             self.draw();
-            // tex.reverseContentCrawl(function _(crawlTex, done) {
-            //     crawlTex.refresh()
-            //     done()
-            // }, function completion() {})
         });
     }
     // Create
@@ -84,53 +84,63 @@ var TEXRender = /** @class */ (function () {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     };
     // Prep
-    TEXRender.prototype.prepTexture = function (tex) {
-        if (tex.texture != null) {
-            this.gl.deleteTexture(tex.texture);
+    // prepTexture(tex: TEX, index: number): WebGLTexture {
+    //     // if (tex.texture != null) {
+    //     //     this.gl.deleteTexture(tex.texture)
+    //     // }
+    //     const texture = this.createEmptyTexture(this.gl, this.resolutionFor(tex))
+    //     return texture
+    // }
+    // prepFramebuffer(tex: TEX, texture: WebGLTexture): WebGLFramebuffer {
+    //     // if (tex.framebuffer != null) {
+    //     //     this.gl.deleteFramebuffer(tex.framebuffer)
+    //     // }
+    //     const framebuffer = this.createFramebuffer(this.gl, texture)
+    //     return framebuffer
+    // }
+    // Activate
+    TEXRender.prototype.activateTexture = function (index) {
+        if (index == 0) {
+            this.gl.activeTexture(this.gl.TEXTURE0);
         }
-        tex.texture = this.createEmptyTexture(this.gl, this.resolutionFor(tex));
-        return tex.texture;
-    };
-    TEXRender.prototype.prepFramebuffer = function (tex) {
-        var _a;
-        var texture = (_a = tex.texture) !== null && _a !== void 0 ? _a : this.prepTexture(tex);
-        if (tex.framebuffer != null) {
-            this.gl.deleteFramebuffer(tex.framebuffer);
+        else if (index == 1) {
+            this.gl.activeTexture(this.gl.TEXTURE1);
         }
-        tex.framebuffer = this.createFramebuffer(this.gl, texture);
-        return tex.framebuffer;
     };
     // Draw
     TEXRender.prototype.draw = function () {
-        console.log(this.tex.constructor.name + " (Render) - " + "Draw >->->->");
+        console.log(this.tex.constructor.name + " (Render) - " + "Draw");
         if (this.tex instanceof TEXEffect) {
             var texEffect = this.tex;
-            this.drawInputs(texEffect);
+            this.drawInputs(texEffect, true);
         }
-        this.drawTo(this.tex, null);
+        else {
+            this.drawTo(this.tex, null);
+        }
     };
-    TEXRender.prototype.drawInputs = function (texEffect) {
-        console.log(this.tex.constructor.name + " (Render) - " + "Draw Inputs >->->", texEffect.constructor.name);
+    TEXRender.prototype.drawInputs = function (texEffect, final) {
+        if (final === void 0) { final = false; }
         for (var index = 0; index < texEffect.texInputs.length; index++) {
             var texEffectInput = texEffect.texInputs[index];
-            console.log(this.tex.constructor.name + " (Render) - " + "Draw Input >->", index, texEffect.constructor.name, ">>>", texEffectInput.constructor.name);
             if (texEffectInput instanceof TEXEffect) {
                 var texEffectInputEffect = texEffectInput;
                 this.drawInputs(texEffectInputEffect);
             }
-            var inputTexture = this.prepTexture(texEffectInput);
-            var inputFramebuffer = this.prepFramebuffer(texEffectInput);
-            this.drawTo(texEffectInput, inputFramebuffer);
-            if (index == 0) {
-                this.gl.activeTexture(this.gl.TEXTURE0);
+            console.log(this.tex.constructor.name + " (Render) - " + "Draw Input >->", index, ">->", texEffectInput.constructor.name);
+            this.activateTexture(index);
+            if (final) {
+                this.drawTo(texEffectInput, null);
             }
-            else if (index == 1) {
-                this.gl.activeTexture(this.gl.TEXTURE1);
+            else {
+                var texture = this.createEmptyTexture(this.gl, this.resolutionFor(texEffectInput));
+                var framebuffer = this.createFramebuffer(this.gl, texture);
+                this.drawTo(texEffectInput, framebuffer);
             }
         }
     };
     TEXRender.prototype.drawTo = function (tex, framebufferTarget) {
-        if (tex.program == null) {
+        var program = this.texPrograms[tex.id];
+        if (program == null) {
             console.log("texture.js TEXRender draw failed: TEX (" + tex.constructor.name + ") shader program is null.");
             return;
         }
@@ -142,62 +152,62 @@ var TEXRender = /** @class */ (function () {
             var type = this.gl.FLOAT;
             var normalize = false;
             var stride = 0;
-            var attribPosition = this.gl.getAttribLocation(tex.program, 'position');
+            var attribPosition = this.gl.getAttribLocation(program, 'position');
             var offset = 0;
             this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.quadBuffer);
             this.gl.vertexAttribPointer(attribPosition, numComponents, type, normalize, stride, offset);
             this.gl.enableVertexAttribArray(attribPosition);
         }
         // Program
-        this.gl.useProgram(tex.program);
+        this.gl.useProgram(program);
         // Sub Render
         if (tex.subRender != undefined) {
-            tex.subRender(this.gl, tex.program);
+            tex.subRender(this.gl, program);
         }
         // Global Resolution
         var resolution = this.resolutionFor(tex);
-        var resolutionLocation = this.gl.getUniformLocation(tex.program, "u_resolution");
+        var resolutionLocation = this.gl.getUniformLocation(program, "u_resolution");
         this.gl.uniform2i(resolutionLocation, resolution.width, resolution.height);
         // Bools
         var uniformBools = tex.uniformBools();
         for (var key in uniformBools) {
             var value = uniformBools[key];
-            var location_1 = this.gl.getUniformLocation(tex.program, key);
+            var location_1 = this.gl.getUniformLocation(program, key);
             this.gl.uniform1i(location_1, value ? 1 : 0);
         }
         // Ints
         var uniformInts = tex.uniformInts();
         for (var key in uniformInts) {
             var value = uniformInts[key];
-            var location_2 = this.gl.getUniformLocation(tex.program, key);
+            var location_2 = this.gl.getUniformLocation(program, key);
             this.gl.uniform1i(location_2, value);
         }
         // Floats
         var uniformFloats = tex.uniformFloats();
         for (var key in uniformFloats) {
             var value = uniformFloats[key];
-            var location_3 = this.gl.getUniformLocation(tex.program, key);
+            var location_3 = this.gl.getUniformLocation(program, key);
             this.gl.uniform1f(location_3, value);
         }
         // Positions
         var uniformPositions = tex.uniformPositions();
         for (var key in uniformPositions) {
             var value = uniformPositions[key];
-            var location_4 = this.gl.getUniformLocation(tex.program, key);
+            var location_4 = this.gl.getUniformLocation(program, key);
             this.gl.uniform2f(location_4, value.x, value.y);
         }
         // Resolutions
         var uniformResolutions = tex.uniformResolutions();
         for (var key in uniformResolutions) {
             var value = uniformResolutions[key];
-            var location_5 = this.gl.getUniformLocation(tex.program, key);
+            var location_5 = this.gl.getUniformLocation(program, key);
             this.gl.uniform2i(location_5, value.width, value.height);
         }
         // Colors
         var uniformColors = tex.uniformColors();
         for (var key in uniformColors) {
             var value = uniformColors[key];
-            var location_6 = this.gl.getUniformLocation(tex.program, key);
+            var location_6 = this.gl.getUniformLocation(program, key);
             this.gl.uniform4f(location_6, value.red, value.green, value.blue, value.alpha);
         }
         // Array of Floats
@@ -205,7 +215,7 @@ var TEXRender = /** @class */ (function () {
         for (var key in uniformArrayOfFloats) {
             var array = uniformArrayOfFloats[key];
             var list = new Float32Array(array);
-            var location_7 = this.gl.getUniformLocation(tex.program, key);
+            var location_7 = this.gl.getUniformLocation(program, key);
             this.gl.uniform1fv(location_7, list);
         }
         // Array of Colors
@@ -221,7 +231,7 @@ var TEXRender = /** @class */ (function () {
                 flatArray.push(color.alpha);
             }
             var list = new Float32Array(flatArray);
-            var location_8 = this.gl.getUniformLocation(tex.program, key);
+            var location_8 = this.gl.getUniformLocation(program, key);
             this.gl.uniform4fv(location_8, list);
         }
         // Final
@@ -236,6 +246,9 @@ var TEXRender = /** @class */ (function () {
 var onlineShaderSourceFolderURL = "https://heestand-xyz.github.io/texture.js/sources/shaders/";
 var TEX = /** @class */ (function () {
     function TEX(shaderPath) {
+        // texture?: WebGLTexture
+        // framebuffer?: WebGLFramebuffer
+        // program?: WebGLProgram
         this.texOutputs = [];
         this.uniformBools = function _() { return {}; };
         this.uniformInts = function _() { return {}; };
@@ -246,6 +259,7 @@ var TEX = /** @class */ (function () {
         this.uniformArrayOfFloats = function _() { return {}; };
         this.uniformArrayOfColors = function _() { return {}; };
         console.log(this.constructor.name + " - " + "Init");
+        this.id = Math.random();
         this.shaderPath = shaderPath;
     }
     Object.defineProperty(TEX.prototype, "firstResolution", {
@@ -287,14 +301,14 @@ var TEX = /** @class */ (function () {
         configurable: true
     });
     // Setup
-    TEX.prototype.setup = function (gl, done) {
+    TEX.prototype.setup = function (gl, completion) {
         var _this = this;
         this.loadShader(function (fragmentShaderSource) {
             var vertexShaderSource = "attribute vec4 position; void main() { gl_Position = position; }";
             var vertexShader = _this.createShader(gl, vertexShaderSource, gl.VERTEX_SHADER);
             var fragmentShader = _this.createShader(gl, fragmentShaderSource, gl.FRAGMENT_SHADER);
-            _this.program = _this.createProgram(gl, vertexShader, fragmentShader);
-            done();
+            var program = _this.createProgram(gl, vertexShader, fragmentShader);
+            completion(program);
         });
     };
     // Load

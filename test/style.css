@@ -9,12 +9,8 @@ body {
         color: #eee;
     }
 }
-.canvasArea {
-    
-}
+.canvasArea {}
 .canvas {
-    /* width: 100vw;
-    height: 100vh; */
-    width: calc(50vw - 2px);
-    height: calc(50vh - 2px);
+    width: 33vw;
+    height: 50vh;
 }

@@ -512,40 +512,40 @@ var CircleTEX = /** @class */ (function (_super) {
     return CircleTEX;
 }(TEXGenerator));
 // module.exports = CircleTEX
-var GradientDirection;
-(function (GradientDirection) {
-    GradientDirection[GradientDirection["horizontal"] = 0] = "horizontal";
-    GradientDirection[GradientDirection["vertical"] = 1] = "vertical";
-    GradientDirection[GradientDirection["radial"] = 2] = "radial";
-    GradientDirection[GradientDirection["angle"] = 3] = "angle";
-})(GradientDirection || (GradientDirection = {}));
-// module.exports = GradientDirection
-var GradientExtend;
-(function (GradientExtend) {
-    GradientExtend[GradientExtend["zero"] = 0] = "zero";
-    GradientExtend[GradientExtend["hold"] = 1] = "hold";
-    GradientExtend[GradientExtend["loop"] = 2] = "loop";
-    GradientExtend[GradientExtend["mirror"] = 3] = "mirror";
-})(GradientExtend || (GradientExtend = {}));
-// module.exports = GradientExtend
-var GradientColorStop = /** @class */ (function () {
-    function GradientColorStop(stop, color) {
+var GradientTEXDirection;
+(function (GradientTEXDirection) {
+    GradientTEXDirection[GradientTEXDirection["horizontal"] = 0] = "horizontal";
+    GradientTEXDirection[GradientTEXDirection["vertical"] = 1] = "vertical";
+    GradientTEXDirection[GradientTEXDirection["radial"] = 2] = "radial";
+    GradientTEXDirection[GradientTEXDirection["angle"] = 3] = "angle";
+})(GradientTEXDirection || (GradientTEXDirection = {}));
+// module.exports = GradientTEXDirection
+var GradientTEXExtend;
+(function (GradientTEXExtend) {
+    GradientTEXExtend[GradientTEXExtend["zero"] = 0] = "zero";
+    GradientTEXExtend[GradientTEXExtend["hold"] = 1] = "hold";
+    GradientTEXExtend[GradientTEXExtend["loop"] = 2] = "loop";
+    GradientTEXExtend[GradientTEXExtend["mirror"] = 3] = "mirror";
+})(GradientTEXExtend || (GradientTEXExtend = {}));
+// module.exports = GradientTEXExtend
+var GradientTEXColorStop = /** @class */ (function () {
+    function GradientTEXColorStop(stop, color) {
         this.stop = stop;
         this.color = color;
     }
-    return GradientColorStop;
+    return GradientTEXColorStop;
 }());
-// module.exports = GradientColorStop
+// module.exports = GradientTEXColorStop
 var GradientTEX = /** @class */ (function (_super) {
     __extends(GradientTEX, _super);
     // var colorStops: [ColorStop]
     function GradientTEX(resolution) {
         var _this = _super.call(this, "content/generator/gradient/GradientTEX.glsl", resolution) || this;
-        _this._direction = GradientDirection.vertical;
+        _this._direction = GradientTEXDirection.vertical;
         _this._scale = 1.0;
         _this._offset = 0.0;
-        _this._extend = GradientExtend.mirror;
-        _this._colorStops = [new GradientColorStop(0.0, TEXColor.black), new GradientColorStop(1.0, TEXColor.white)];
+        _this._extend = GradientTEXExtend.mirror;
+        _this._colorStops = [new GradientTEXColorStop(0.0, TEXColor.black), new GradientTEXColorStop(1.0, TEXColor.white)];
         _this.uniformInts = function _() {
             var uniforms = {};
             uniforms["u_direction"] = this.direction;
@@ -915,6 +915,77 @@ var TEXSingleEffect = /** @class */ (function (_super) {
     };
     return TEXSingleEffect;
 }(TEXEffect));
+var BlurTEXStyle;
+(function (BlurTEXStyle) {
+    // gaussian = 0,
+    BlurTEXStyle[BlurTEXStyle["box"] = 1] = "box";
+    BlurTEXStyle[BlurTEXStyle["angle"] = 2] = "angle";
+    BlurTEXStyle[BlurTEXStyle["zoom"] = 3] = "zoom";
+    // random = 4,
+})(BlurTEXStyle || (BlurTEXStyle = {}));
+// module.exports = BlurTEXStyle
+var BlurTEX = /** @class */ (function (_super) {
+    __extends(BlurTEX, _super);
+    function BlurTEX() {
+        var _this = _super.call(this, "effects/single/blur/BlurTEX.glsl") || this;
+        _this._style = BlurTEXStyle.box;
+        _this._radius = 0.1;
+        _this._quality = 20;
+        _this._angle = 0.0;
+        _this._position = TEXPosition.zero;
+        _this.uniformInts = function _() {
+            var uniforms = {};
+            uniforms["u_style"] = this.style;
+            uniforms["u_quality"] = this.quality;
+            return uniforms;
+        };
+        _this.uniformFloats = function _() {
+            var uniforms = {};
+            uniforms["u_radius"] = this.radius;
+            uniforms["u_angle"] = this.angle;
+            return uniforms;
+        };
+        _this.uniformPositions = function _() {
+            var uniforms = {};
+            uniforms["u_position"] = this.position;
+            return uniforms;
+        };
+        _super.prototype.didEdit.call(_this);
+        return _this;
+    }
+    Object.defineProperty(BlurTEX.prototype, "style", {
+        get: function () { return this._style; },
+        set: function (value) { this._style = value; _super.prototype.didEdit.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(BlurTEX.prototype, "radius", {
+        get: function () { return this._radius; },
+        set: function (value) { this._radius = value; _super.prototype.didEdit.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(BlurTEX.prototype, "quality", {
+        get: function () { return this._quality; },
+        set: function (value) { this._quality = value; _super.prototype.didEdit.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(BlurTEX.prototype, "angle", {
+        get: function () { return this._angle; },
+        set: function (value) { this._angle = value; _super.prototype.didEdit.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(BlurTEX.prototype, "position", {
+        get: function () { return this._position; },
+        set: function (value) { this._position = value; _super.prototype.didEdit.call(this); },
+        enumerable: false,
+        configurable: true
+    });
+    return BlurTEX;
+}(TEXSingleEffect));
+// module.exports = BlurTEX
 var ColorShiftTEX = /** @class */ (function (_super) {
     __extends(ColorShiftTEX, _super);
     function ColorShiftTEX() {
@@ -976,6 +1047,7 @@ var TEXPosition = /** @class */ (function () {
         this.x = x;
         this.y = y;
     }
+    TEXPosition.zero = new TEXPosition(0.0, 0.0);
     return TEXPosition;
 }());
 // module.exports = TEXPosition;

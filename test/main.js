@@ -28,8 +28,8 @@ resize()
 
 const gradientTex = new GradientTEX()
 gradientTex.colorStops = [
-    new GradientColorStop(0.0, TEXColor.black),
-    new GradientColorStop(1.0, new TEXColor(0.0, 0.5, 1.0))
+    new GradientTEXColorStop(0.0, TEXColor.black),
+    new GradientTEXColorStop(1.0, new TEXColor(0.0, 0.5, 1.0))
 ]
 new TEXRender(gradientTex, canvasOne)
 
@@ -49,13 +49,12 @@ new TEXRender(colorShiftTex1, canvasFour)
 
 const colorShiftTex2 = new ColorShiftTEX()
 colorShiftTex2.input = colorShiftTex1
-colorShiftTex2.saturation = 2.0
+colorShiftTex2.saturation = 0.0
 new TEXRender(colorShiftTex2, canvasFive)
 
-const colorShiftTex3 = new ColorShiftTEX()
-colorShiftTex3.input = colorShiftTex2
-colorShiftTex3.saturation = 0.0
-new TEXRender(colorShiftTex3, canvasSix)
+const blurTex = new BlurTEX()
+blurTex.input = colorShiftTex2
+new TEXRender(blurTex, canvasSix)
 
 // const imageTex = new ImageTEX(canvasThree)
 // imageTex.loadImageURL("http://heestand.xyz/assets/images/kite.jpg")

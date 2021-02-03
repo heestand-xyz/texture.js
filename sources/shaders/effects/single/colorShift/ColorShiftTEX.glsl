@@ -93,7 +93,6 @@ vec3 hsv2rgb(float h, float s, float v) {
 void main() {
 
     vec2 uv = gl_FragCoord.xy / vec2(u_resolution);
-    uv = vec2(uv.x, uv.y);
 
     vec4 color = texture2D(u_sampler, uv);
     

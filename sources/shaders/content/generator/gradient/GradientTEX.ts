@@ -1,21 +1,21 @@
 
-enum GradientDirection {
+enum GradientTEXDirection {
     horizontal = 0,
     vertical = 1,
     radial = 2,
     angle = 3,
 }
-// module.exports = GradientDirection
+// module.exports = GradientTEXDirection
 
-enum GradientExtend {
+enum GradientTEXExtend {
     zero = 0,
     hold = 1,
     loop = 2,
     mirror = 3,
 }
-// module.exports = GradientExtend
+// module.exports = GradientTEXExtend
 
-class GradientColorStop {
+class GradientTEXColorStop {
     stop: number;
     color: TEXColor;
     constructor(stop: number, color: TEXColor) {
@@ -23,13 +23,13 @@ class GradientColorStop {
         this.color = color
     }
 }
-// module.exports = GradientColorStop
+// module.exports = GradientTEXColorStop
 
 class GradientTEX extends TEXGenerator {
 
-    _direction: GradientDirection = GradientDirection.vertical
-    public get direction(): GradientDirection { return this._direction }
-    public set direction(value: GradientDirection) { this._direction = value; super.didEdit(); }
+    _direction: GradientTEXDirection = GradientTEXDirection.vertical
+    public get direction(): GradientTEXDirection { return this._direction }
+    public set direction(value: GradientTEXDirection) { this._direction = value; super.didEdit(); }
     
     _scale: number = 1.0
     public get scale(): number { return this._scale }
@@ -39,13 +39,13 @@ class GradientTEX extends TEXGenerator {
     public get offset(): number { return this._offset }
     public set offset(value: number) { this._offset = value; super.didEdit(); }
     
-    _extend: GradientExtend = GradientExtend.mirror
-    public get extend(): GradientExtend { return this._extend }
-    public set extend(value: GradientExtend) { this._extend = value; super.didEdit(); }
+    _extend: GradientTEXExtend = GradientTEXExtend.mirror
+    public get extend(): GradientTEXExtend { return this._extend }
+    public set extend(value: GradientTEXExtend) { this._extend = value; super.didEdit(); }
     
-    _colorStops: GradientColorStop[] = [new GradientColorStop(0.0, TEXColor.black), new GradientColorStop(1.0, TEXColor.white)]
-    public get colorStops(): GradientColorStop[] { return this._colorStops }
-    public set colorStops(value: GradientColorStop[]) { this._colorStops = value; super.didEdit(); }
+    _colorStops: GradientTEXColorStop[] = [new GradientTEXColorStop(0.0, TEXColor.black), new GradientTEXColorStop(1.0, TEXColor.white)]
+    public get colorStops(): GradientTEXColorStop[] { return this._colorStops }
+    public set colorStops(value: GradientTEXColorStop[]) { this._colorStops = value; super.didEdit(); }
     
     // var colorStops: [ColorStop]
     

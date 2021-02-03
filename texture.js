@@ -106,46 +106,45 @@ var TEXRender = /** @class */ (function () {
             this.drawTo(this.tex, null);
         }
     };
-    TEXRender.prototype.drawEffect = function (texEffect, final) {
+    TEXRender.prototype.drawEffect = function (tex, final) {
         if (final === void 0) { final = false; }
-        for (var index = 0; index < texEffect.texInputs.length; index++) {
-            var texEffectInput = texEffect.texInputs[index];
-            console.log(this.tex.constructor.name + " (Render) - " + "Draw Input >->", index, ">->", texEffectInput.constructor.name);
-            if (texEffectInput instanceof TEXEffect) {
-                var subTexEffect = texEffectInput;
-                this.drawEffect(subTexEffect);
-                if (subTexEffect instanceof TEXSingleEffect) {
-                    var subTexSingleEffect = subTexEffect;
-                    if (subTexSingleEffect.input != null) {
-                        var inputTexture = this.texTextures[subTexSingleEffect.input.id];
-                        this.activateTexture(0);
-                        this.gl.bindTexture(this.gl.TEXTURE_2D, inputTexture);
-                    }
-                }
-                else if (subTexEffect instanceof TEXMergerEffect) {
-                    var subTexMergerEffect = subTexEffect;
-                    if (subTexMergerEffect.inputA != null) {
-                        var inputTextureA = this.texTextures[subTexMergerEffect.inputA.id];
-                        this.activateTexture(0);
-                        this.gl.bindTexture(this.gl.TEXTURE_2D, inputTextureA);
-                    }
-                    if (subTexMergerEffect.inputB != null) {
-                        var inputTextureB = this.texTextures[subTexMergerEffect.inputB.id];
-                        this.activateTexture(1);
-                        this.gl.bindTexture(this.gl.TEXTURE_2D, inputTextureB);
-                    }
+        if (tex instanceof TEXEffect) {
+            var subTexEffect = tex;
+            for (var index = 0; index < subTexEffect.texInputs.length; index++) {
+                var texEffectInput = subTexEffect.texInputs[index];
+                this.drawEffect(texEffectInput);
+            }
+            if (subTexEffect instanceof TEXSingleEffect) {
+                var subTexSingleEffect = subTexEffect;
+                if (subTexSingleEffect.input != null) {
+                    var inputTexture = this.texTextures[subTexSingleEffect.input.id];
+                    this.activateTexture(0);
+                    this.gl.bindTexture(this.gl.TEXTURE_2D, inputTexture);
                 }
             }
-            if (final) {
-                this.drawTo(texEffectInput, null);
+            else if (subTexEffect instanceof TEXMergerEffect) {
+                var subTexMergerEffect = subTexEffect;
+                if (subTexMergerEffect.inputA != null) {
+                    var inputTextureA = this.texTextures[subTexMergerEffect.inputA.id];
+                    this.activateTexture(0);
+                    this.gl.bindTexture(this.gl.TEXTURE_2D, inputTextureA);
+                }
+                if (subTexMergerEffect.inputB != null) {
+                    var inputTextureB = this.texTextures[subTexMergerEffect.inputB.id];
+                    this.activateTexture(1);
+                    this.gl.bindTexture(this.gl.TEXTURE_2D, inputTextureB);
+                }
             }
-            else {
-                this.activateTexture(2);
-                var texture = this.createEmptyTexture(this.gl, this.resolutionFor(texEffectInput));
-                var framebuffer = this.createFramebuffer(this.gl, texture);
-                this.drawTo(texEffectInput, framebuffer);
-                this.texTextures[texEffectInput.id] = texture;
-            }
+        }
+        if (final) {
+            this.drawTo(tex, null);
+        }
+        else {
+            this.activateTexture(2);
+            var texture = this.createEmptyTexture(this.gl, this.resolutionFor(tex));
+            var framebuffer = this.createFramebuffer(this.gl, texture);
+            this.drawTo(tex, framebuffer);
+            this.texTextures[tex.id] = texture;
         }
     };
     TEXRender.prototype.drawTo = function (tex, framebufferTarget) {

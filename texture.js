@@ -16,7 +16,7 @@ var TEXRender = /** @class */ (function () {
     function TEXRender(tex, canvas) {
         this.texPrograms = {};
         this.texTextures = {};
-        console.log(tex.constructor.name + " (Render) - " + "Init");
+        console.log(tex.constructor.name + " (Render) - " + "Created");
         this.tex = tex;
         tex.render = this;
         this.canvas = canvas;
@@ -97,7 +97,7 @@ var TEXRender = /** @class */ (function () {
     };
     // Draw
     TEXRender.prototype.draw = function () {
-        console.log(this.tex.constructor.name + " (Render) - " + "Draw");
+        // console.log(this.tex.constructor.name + " (Render) - " + "Draw")
         if (this.tex instanceof TEXEffect) {
             var texEffect = this.tex;
             this.drawEffect(texEffect, true);
@@ -267,7 +267,7 @@ var TEX = /** @class */ (function () {
         this.uniformColors = function _() { return {}; };
         this.uniformArrayOfFloats = function _() { return {}; };
         this.uniformArrayOfColors = function _() { return {}; };
-        console.log(this.constructor.name + " - " + "Init");
+        console.log(this.constructor.name + " - " + "Created");
         this.id = Math.random();
         this.shaderPath = shaderPath;
     }
@@ -342,33 +342,34 @@ var TEX = /** @class */ (function () {
     };
     // Update
     TEX.prototype.didConnect = function () {
-        console.log(this.constructor.name + " - " + "Did Connect");
+        // console.log(this.constructor.name + " - " + "Did Connect")
         console.log();
         var self = this;
-        this.reverseContentCrawl(function _(tex, done) {
-            console.log(self.constructor.name + " - " + "Did Connect - Crawl:", tex.constructor.name);
-            tex.downstreamRefresh(self);
-            done();
-        }, function completion() { });
+        // this.reverseContentCrawl(function _(tex, done) {
+        //     console.log(self.constructor.name + " - " + "Did Connect - Crawl:", tex.constructor.name)
+        //     tex.downstreamRefresh(self)
+        //     done()
+        // }, function completion() {})
+        this.refresh();
     };
     TEX.prototype.didEdit = function () {
         var _a;
-        console.log(this.constructor.name + " - " + "Did Edit");
+        // console.log(this.constructor.name + " - " + "Did Edit")
         // this.editIndex += 1
         (_a = this.render) === null || _a === void 0 ? void 0 : _a.draw();
         this.refresh();
     };
-    TEX.prototype.downstreamRefresh = function (fromTex) {
-        console.log(this.constructor.name + " - " + "Downstream Refresh from:", fromTex.constructor.name);
-        this.refresh();
-    };
+    // downstreamRefresh(fromTex: TEX) {
+    //     console.log(this.constructor.name + " - " + "Downstream Refresh from:", fromTex.constructor.name)
+    //     this.refresh()
+    // }
     TEX.prototype.upstreamRefresh = function (fromTex) {
-        console.log(this.constructor.name + " - " + "Upstream Refresh from:", fromTex.constructor.name);
+        // console.log(this.constructor.name + " - " + "Upstream Refresh from:", fromTex.constructor.name)
         this.refresh();
     };
     TEX.prototype.refresh = function () {
         var _a;
-        console.log(this.constructor.name + " - " + "Refresh");
+        // console.log(this.constructor.name + " - " + "Refresh")
         (_a = this.render) === null || _a === void 0 ? void 0 : _a.draw();
         for (var index = 0; index < this.texOutputs.length; index++) {
             var texOutput = this.texOutputs[index];

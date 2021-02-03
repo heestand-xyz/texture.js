@@ -13,7 +13,7 @@ class TEXRender {
     
     constructor(tex: TEX, canvas: HTMLCanvasElement) {
 
-        console.log(tex.constructor.name + " (Render) - " + "Init")
+        console.log(tex.constructor.name + " (Render) - " + "Created")
 
         this.tex = tex
         tex.render = this
@@ -121,7 +121,7 @@ class TEXRender {
 
     public draw() {
 
-        console.log(this.tex.constructor.name + " (Render) - " + "Draw")
+        // console.log(this.tex.constructor.name + " (Render) - " + "Draw")
 
         if (this.tex instanceof TEXEffect) {
             let texEffect = this.tex as TEXEffect

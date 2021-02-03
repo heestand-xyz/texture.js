@@ -68,12 +68,15 @@ new TEXRender(colorShiftTex3, canvasSix)
 //     noiseTex.zPosition = x
 // })
 
-// canvasTwo.addEventListener('mousemove', e => {
-//     const x = e.offsetX / canvasTwo.clientWidth;
-//     const y = e.offsetY / canvasTwo.clientHeight;
-//     polygonTex.rotation = (x - 0.5) * 0.25
-//     polygonTex.cornerRadius = y * 0.1
-// })
+canvasTwo.addEventListener('mousemove', e => {
+    const u = e.offsetX / canvasTwo.clientWidth;
+    const v = e.offsetY / canvasTwo.clientHeight;
+    const aspect = canvasTwo.clientWidth / canvasTwo.clientHeight
+    const x = (u - 0.5) * aspect;
+    const y = (1.0 - v) - 0.5;
+    polygonTex.rotation = -Math.atan2(y, x) / (Math.PI * 2)
+    polygonTex.position = new TEXPosition(x, y)
+})
 
 // canvasFour.addEventListener('mousemove', e => {
 //     const x = e.offsetX / canvasFour.clientWidth;

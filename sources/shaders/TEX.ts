@@ -66,7 +66,7 @@ class TEX {
 
     constructor(shaderPath: string) {
         
-        console.log(this.constructor.name + " - " + "Init")
+        console.log(this.constructor.name + " - " + "Created")
 
         this.id = Math.random()
 
@@ -116,35 +116,36 @@ class TEX {
     // Update
 
     didConnect() {
-        console.log(this.constructor.name + " - " + "Did Connect")
+        // console.log(this.constructor.name + " - " + "Did Connect")
         console.log()
         const self = this
-        this.reverseContentCrawl(function _(tex, done) {
-            console.log(self.constructor.name + " - " + "Did Connect - Crawl:", tex.constructor.name)
-            tex.downstreamRefresh(self)
-            done()
-        }, function completion() {})
+        // this.reverseContentCrawl(function _(tex, done) {
+        //     console.log(self.constructor.name + " - " + "Did Connect - Crawl:", tex.constructor.name)
+        //     tex.downstreamRefresh(self)
+        //     done()
+        // }, function completion() {})
+        this.refresh()
     }
 
     didEdit() {
-        console.log(this.constructor.name + " - " + "Did Edit")
+        // console.log(this.constructor.name + " - " + "Did Edit")
         // this.editIndex += 1
         this.render?.draw()
         this.refresh()
     }
 
-    downstreamRefresh(fromTex: TEX) {
-        console.log(this.constructor.name + " - " + "Downstream Refresh from:", fromTex.constructor.name)
-        this.refresh()
-    }
+    // downstreamRefresh(fromTex: TEX) {
+    //     console.log(this.constructor.name + " - " + "Downstream Refresh from:", fromTex.constructor.name)
+    //     this.refresh()
+    // }
 
     upstreamRefresh(fromTex: TEX) {
-        console.log(this.constructor.name + " - " + "Upstream Refresh from:", fromTex.constructor.name)
+        // console.log(this.constructor.name + " - " + "Upstream Refresh from:", fromTex.constructor.name)
         this.refresh()
     }
 
     refresh() {
-        console.log(this.constructor.name + " - " + "Refresh")
+        // console.log(this.constructor.name + " - " + "Refresh")
         this.render?.draw()
         for (let index = 0; index < this.texOutputs.length; index++) {
             const texOutput = this.texOutputs[index];
